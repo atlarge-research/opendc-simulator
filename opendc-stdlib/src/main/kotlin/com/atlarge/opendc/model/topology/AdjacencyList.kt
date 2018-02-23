@@ -246,8 +246,8 @@ internal class AdjacencyListTopology : MutableTopology {
      * The internal representation of a node within the graph.
      */
     internal data class Node(val id: Int) {
-        val ingoingEdges: MutableSet<BaseEdge<*>> = HashSet()
-        val outgoingEdges: MutableSet<BaseEdge<*>> = HashSet()
+        val ingoingEdges: MutableSet<BaseEdge<*>> = LinkedHashSet()
+        val outgoingEdges: MutableSet<BaseEdge<*>> = LinkedHashSet()
     }
 
     /**

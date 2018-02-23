@@ -93,6 +93,7 @@
                 <column column-definition="text"/>
             </basic>
             <one-to-many name="jobs" target-entity="com.atlarge.opendc.model.odc.integration.jpa.schema.Job">
+                <order-by>id</order-by>
                 <join-column name="trace_id"/>
             </one-to-many>
         </attributes>
@@ -102,6 +103,7 @@
         <attributes>
             <id name="id"/>
             <one-to-many name="tasks" target-entity="Task">
+                <order-by>id</order-by>
                 <join-column name="job_id"/>
             </one-to-many>
             <transient name="owner"/>

@@ -77,7 +77,8 @@ interface Datacenter : Process<Unit, Topology> {
         // Find all machines in the datacenter
         val machines = outgoingEdges.destinations<Room>("room").asSequence()
             .flatMap { it.outgoingEdges.destinations<Rack>("rack").asSequence() }
-            .flatMap { it.outgoingEdges.destinations<Machine>("machine").asSequence() }.toList()
+            .flatMap { it.outgoingEdges.destinations<Machine>("machine").asSequence() }
+            .toList()
 
         logger.info { "Initialising datacenter with ${machines.size} machines" }
 

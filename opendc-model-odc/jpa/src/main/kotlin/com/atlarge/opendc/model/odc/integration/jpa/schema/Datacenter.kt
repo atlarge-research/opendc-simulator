@@ -39,13 +39,13 @@ import javax.persistence.Entity
 @Entity
 data class Datacenter(
     val id: Int,
-    val rooms: Set<Room>
+    val rooms: List<Room>
 ) : Datacenter {
     /**
      * Construct a datacenter. We need this useless constructor in order for Kotlin correctly initialise the
      * constant fields of the class.
      */
-    private constructor() : this(-1, emptySet())
+    private constructor() : this(-1, emptyList())
 
     /**
      * The task scheduler the datacenter uses.
