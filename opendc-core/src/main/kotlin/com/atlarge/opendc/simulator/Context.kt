@@ -142,7 +142,7 @@ interface Context<S, M> : CoroutineContext.Element {
      * @param sender The sender of the message.
      * @param delay The amount of time to wait before the message should be received by the entity.
      */
-    suspend fun Entity<*, *>.send(msg: Any, sender: Entity<*, *>, delay: Duration = 0)
+    suspend fun Entity<*, *>.send(msg: Any, sender: Entity<*, *>? = null, delay: Duration = 0)
 
     /**
      * Send the given message to the specified entity, without providing any guarantees about the actual delivery of

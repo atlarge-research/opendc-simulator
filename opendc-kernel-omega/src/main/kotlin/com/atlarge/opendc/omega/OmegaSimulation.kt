@@ -365,7 +365,7 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
             }
         }
 
-        override suspend fun Entity<*, *>.send(msg: Any, sender: Entity<*, *>, delay: Duration) =
+        override suspend fun Entity<*, *>.send(msg: Any, sender: Entity<*, *>?, delay: Duration) =
             schedule(prepare(msg, this, sender, delay))
 
         override suspend fun Entity<*, *>.interrupt(interrupt: Interrupt) = send(interrupt)
