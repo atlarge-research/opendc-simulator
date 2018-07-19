@@ -49,7 +49,7 @@ interface Edge<out T> : Component {
      * This property is not guaranteed to have a runtime complexity of <code>O(1)</code>, but must be at least
      * <code>O(n)</code>, with respect to the size of the topology.
      */
-    val from: Entity<*, Topology>
+    val from: Entity<*>
 
     /**
      * The destination of the edge.
@@ -57,5 +57,5 @@ interface Edge<out T> : Component {
      * This property is not guaranteed to have a runtime complexity of <code>O(1)</code>, but must be at least
      * <code>O(n)</code>, with respect to the size of the topology.
      */
-    val to: Entity<*, Topology>
+    val to: Entity<*>
 }

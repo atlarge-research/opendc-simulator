@@ -36,15 +36,15 @@ interface TopologyContext {
     /**
      * A unique identifier of an [Entity] within the topology.
      */
-    val Entity<*, Topology>.id: Int
+    val Entity<*>.id: Int
 
     /**
      * The set of ingoing edges of an [Entity].
      */
-    val Entity<*, Topology>.ingoingEdges: Set<Edge<*>>
+    val Entity<*>.ingoingEdges: Set<Edge<*>>
 
     /**
      * The set of outgoing edges of an [Entity].
      */
-    val Entity<*, Topology>.outgoingEdges: Set<Edge<*>>
+    val Entity<*>.outgoingEdges: Set<Edge<*>>
 }

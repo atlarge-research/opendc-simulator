@@ -32,7 +32,7 @@ class JpaBootstrap(val experiment: Experiment) : Bootstrap<JpaModel> {
         section.datacenter.scheduler = experiment.scheduler
 
         // Register the scheduler
-        context.register(experiment.scheduler)
+        context.start(experiment.scheduler)
 
         val topology = JpaTopologyFactory(section)
             .create()

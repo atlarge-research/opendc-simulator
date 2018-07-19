@@ -51,7 +51,7 @@ interface Simulation<M> {
     /**
      * The observable state of an [Entity] in simulation, which is provided by the simulation context.
      */
-    val <E : Entity<S, *>, S> E.state: S
+    val <E : Entity<S>, S> E.state: S
 
     /**
      * Open a new [Port] to manage [Instrument]s.

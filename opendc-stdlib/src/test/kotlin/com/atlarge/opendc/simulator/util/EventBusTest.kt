@@ -36,8 +36,8 @@ internal class EventBusTest {
         }
 
         val simulation: Simulation<Unit> = OmegaKernel.create(Bootstrap.create {
-            it.register(bus)
-            it.register(test)
+            it.start(bus)
+            it.start(test)
             it.schedule(EventBus.Publish(1), bus, delay = 2)
         })
 
@@ -63,8 +63,8 @@ internal class EventBusTest {
         }
 
         val simulation: Simulation<Unit> = OmegaKernel.create(Bootstrap.create {
-            it.register(bus)
-            it.register(test)
+            it.start(bus)
+            it.start(test)
             it.schedule(EventBus.Publish(1), bus, delay = 2)
         })
 
@@ -91,9 +91,9 @@ internal class EventBusTest {
         }
 
         val simulation: Simulation<Unit> = OmegaKernel.create(Bootstrap.create {
-            it.register(bus)
-            it.register(testA)
-            it.register(testB)
+            it.start(bus)
+            it.start(testA)
+            it.start(testB)
             it.schedule(EventBus.Publish(2), bus, delay = 2)
         })
 
@@ -105,7 +105,7 @@ internal class EventBusTest {
         val bus = EventBus()
 
         val simulation: Simulation<Unit> = OmegaKernel.create(Bootstrap.create {
-            it.register(bus)
+            it.start(bus)
             it.schedule(EventBus.Publish(1), bus, delay = 2)
         })
 

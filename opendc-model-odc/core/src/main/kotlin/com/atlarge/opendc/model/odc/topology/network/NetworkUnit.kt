@@ -24,7 +24,6 @@
 
 package com.atlarge.opendc.model.odc.topology.network
 
-import com.atlarge.opendc.model.topology.Topology
 import com.atlarge.opendc.simulator.Entity
 
 /**
@@ -32,4 +31,4 @@ import com.atlarge.opendc.simulator.Entity
  *
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-interface NetworkUnit : Entity<Unit, Topology>
+interface NetworkUnit : Entity<Unit>

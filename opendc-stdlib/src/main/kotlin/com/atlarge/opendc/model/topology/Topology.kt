@@ -34,7 +34,7 @@ import com.atlarge.opendc.simulator.Entity
  *
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-interface Topology : TopologyContext, Cloneable, Set<Entity<*, Topology>> {
+interface Topology : TopologyContext, Cloneable, Set<Entity<*>> {
     /**
      * The listeners of this topology.
      */

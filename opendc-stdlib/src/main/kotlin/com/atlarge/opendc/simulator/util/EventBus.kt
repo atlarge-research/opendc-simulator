@@ -19,7 +19,7 @@ class EventBus : Process<EventBus.State, Any> {
     /**
      * The state of the event bus.
      */
-    data class State(val subscribers: Set<Entity<*, *>> = emptySet())
+    data class State(val subscribers: Set<Entity<*>> = emptySet())
 
     /**
      * The initial state of the event bus.

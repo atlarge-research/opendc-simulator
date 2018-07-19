@@ -32,7 +32,7 @@ import com.atlarge.opendc.simulator.Entity
  *
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-interface MutableTopology : Topology, MutableSet<Entity<*, Topology>> {
+interface MutableTopology : Topology, MutableSet<Entity<*>> {
     /**
      * Create a directed, labeled edge between two nodes in the topology.
      *
@@ -42,7 +42,7 @@ interface MutableTopology : Topology, MutableSet<Entity<*, Topology>> {
      * @param tag The tag of the edge that uniquely identifies the relationship the edge represents.
      * @return The edge that has been created.
      */
-    fun <T> connect(from: Entity<*, Topology>, to: Entity<*, Topology>, label: T, tag: String? = null): Edge<T>
+    fun <T> connect(from: Entity<*>, to: Entity<*>, label: T, tag: String? = null): Edge<T>
 
     /**
      * Create a directed, unlabeled edge between two nodes in the topology.
@@ -52,7 +52,7 @@ interface MutableTopology : Topology, MutableSet<Entity<*, Topology>> {
      * @param tag The tag of the edge that uniquely identifies the relationship the edge represents.
      * @return The edge that has been created.
      */
-    fun connect(from: Entity<*, Topology>, to: Entity<*, Topology>, tag: String? = null): Edge<Unit> =
+    fun connect(from: Entity<*>, to: Entity<*>, tag: String? = null): Edge<Unit> =
         connect(from, to, Unit, tag)
 
     /**
@@ -61,5 +61,5 @@ interface MutableTopology : Topology, MutableSet<Entity<*, Topology>> {
      * @param dest The destination of the edge.
      * @return The edge that has been created.
      */
-    infix fun Entity<*, Topology>.to(dest: Entity<*, Topology>): Edge<Unit> = connect(this, dest)
+    infix fun Entity<*>.to(dest: Entity<*>): Edge<Unit> = connect(this, dest)
 }

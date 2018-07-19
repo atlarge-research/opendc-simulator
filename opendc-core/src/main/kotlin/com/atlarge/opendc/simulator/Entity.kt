@@ -33,10 +33,9 @@ package com.atlarge.opendc.simulator
  *
  * @param S The shape of the observable state of this entity, which is directly accessible by other components within
  * a simulation.
- * @param M The shape of the model in which the entity exists.
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-interface Entity<out S, in M> {
+interface Entity<out S> {
     /**
      * The initial state of the entity.
      */

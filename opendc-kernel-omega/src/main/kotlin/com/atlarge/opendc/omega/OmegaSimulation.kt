@@ -55,7 +55,7 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
     /**
      * The registry of the processes used in the simulation.
      */
-    private val registry: MutableMap<Entity<*, *>, OmegaContext<*>> = HashMap()
+    private val registry: MutableMap<Entity<*>, OmegaContext<*>> = HashMap()
 
     /**
      * The message queue.
@@ -67,7 +67,7 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
     /**
      * The kernel process instance that handles internal operations during the simulation.
      */
-    private val process = object : Process<Unit, M> {
+    private val kernel = object : Process<Unit, M> {
         override val initialState = Unit
 
         override suspend fun Context<Unit, M>.run() {
@@ -86,7 +86,7 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
      * The context associated with an [Entity].
      */
     @Suppress("UNCHECKED_CAST")
-    private val <E : Entity<S, M>, S, M> E.context: OmegaContext<S>?
+    private val <E : Entity<S>, S> E.context: OmegaContext<S>?
         get() = registry[this] as? OmegaContext<S>
 
     /**
@@ -103,7 +103,7 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
     /**
      * The observable state of an [Entity] in simulation, which is provided by the simulation context.
      */
-    override val <E : Entity<S, *>, S> E.state: S
+    override val <E : Entity<S>, S> E.state: S
         get() = context?.state ?: initialState
 
     /**
@@ -111,26 +111,26 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
      */
     init {
         // Launch the Omega kernel process
-        launch(process)
+        launch(kernel)
     }
 
     // Bootstrap Context implementation
-    override fun register(entity: Entity<*, M>): Boolean {
-        if (!registry.containsKey(entity) && entity !is Process) {
-            return false
+    override fun start(process: Process<*, M>): Boolean {
+        if (registry.containsKey(process)) {
+            return true
         }
 
-        schedule(Launch(entity as Process<*, M>), process)
+        schedule(Launch(process), kernel)
         return true
     }
 
-    override fun deregister(entity: Entity<*, M>): Boolean {
+    override fun stop(entity: Entity<*>): Boolean {
         val context = entity.context ?: return false
         context.resume(Unit)
         return true
     }
 
-    override fun schedule(message: Any, destination: Entity<*, *>, sender: Entity<*, *>?, delay: Duration) =
+    override fun schedule(message: Any, destination: Entity<*>, sender: Entity<*>?, delay: Duration) =
         schedule(prepare(message, destination, sender, delay))
 
     // Simulation implementation
@@ -152,7 +152,7 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
                 }
             }
             channels.add(WeakReference(channel))
-            register(process)
+            start(process)
             return channel
         }
 
@@ -241,8 +241,8 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
     private data class Envelope(val id: Long,
                                 val message: Any,
                                 val time: Instant,
-                                val sender: Entity<*, *>?,
-                                val destination: Entity<*, *>) {
+                                val sender: Entity<*>?,
+                                val destination: Entity<*>) {
         /**
          * A flag to indicate the message has been canceled.
          */
@@ -266,7 +266,7 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
      * @param sender The optional sender of the message.
      * @param delay The time to delay the message.
      */
-    private fun prepare(message: Any, destination: Entity<*, *>, sender: Entity<*, *>? = null,
+    private fun prepare(message: Any, destination: Entity<*>, sender: Entity<*>? = null,
                         delay: Duration): Envelope {
         require(delay >= 0) { "The amount of time to delay the message must be a positive number" }
         return Envelope(nextId++, message, time + delay, sender, destination)
@@ -305,7 +305,7 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
         /**
          * The [Entity] associated with this context.
          */
-        override val self: Entity<S, M>
+        override val self: Entity<S>
             get() = process
 
         /**
@@ -323,13 +323,13 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
         /**
          * The observable state of an [Entity] within the simulation is provided by the context of the simulation.
          */
-        override val <T : Entity<S, *>, S> T.state: S
+        override val <T : Entity<S>, S> T.state: S
             get() = context?.state ?: initialState
 
         /**
          * The sender of the last received message or `null` in case the process has not received any messages yet.
          */
-        override var sender: Entity<*, *>? = null
+        override var sender: Entity<*>? = null
 
         /**
          * The [CoroutineContext] for a [Context].
@@ -345,6 +345,10 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
          * The last point in time the process has done some work.
          */
         var last: Instant = -1
+
+        override fun start(process: Process<*, M>): Boolean = this@OmegaSimulation.start(process)
+
+        override fun stop(entity: Entity<*>): Boolean = this@OmegaSimulation.stop(entity)
 
         override suspend fun receive(): Any = receiveEnvelope().message
 
@@ -365,10 +369,10 @@ internal class OmegaSimulation<M>(bootstrap: Bootstrap<M>) : Simulation<M>, Boot
             }
         }
 
-        override suspend fun Entity<*, *>.send(msg: Any, sender: Entity<*, *>?, delay: Duration) =
+        override suspend fun Entity<*>.send(msg: Any, sender: Entity<*>?, delay: Duration) =
             schedule(prepare(msg, this, sender, delay))
 
-        override suspend fun Entity<*, *>.interrupt(interrupt: Interrupt) = send(interrupt)
+        override suspend fun Entity<*>.interrupt(interrupt: Interrupt) = send(interrupt)
 
         override suspend fun hold(duration: Duration) {
             require(duration >= 0) { "The amount of time to hold must be a positive number" }

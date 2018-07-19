@@ -24,7 +24,6 @@
 
 package com.atlarge.opendc.model.odc.topology.machine
 
-import com.atlarge.opendc.model.topology.Topology
 import com.atlarge.opendc.simulator.Entity
 
 /**
@@ -32,7 +31,7 @@ import com.atlarge.opendc.simulator.Entity
  *
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-interface ProcessingUnit : Entity<Unit, Topology> {
+interface ProcessingUnit : Entity<Unit> {
     /**
      * The speed of this [ProcessingUnit] per core in MHz.
      */
