@@ -36,19 +36,35 @@ import kotlin.coroutines.experimental.CoroutineContext
  * The operation is _intermediate_ and _stateless_.
  * This function [consumes][consume] all elements of the original [ReceiveChannel].
  *
- * @param context The context of the coroutine.
  * @param n The amount of elements to interpolate between the actual elements in the channel.
+ * @param context The context of the coroutine.
  * @param interpolator A function to interpolate between the two element occurrences.
  */
 fun <E> ReceiveChannel<E>.interpolate(n: Int, context: CoroutineContext = Unconfined,
                                       interpolator: (Double, E, E) -> E): ReceiveChannel<E> {
     require(n >= 0) { "The amount to interpolate must be non-negative" }
 
-    // If we do not want to interpolate any elements, just return the original channel
+    // Fast-path: if we do not want to interpolate any elements, just return the original channel
     if (n == 0) {
         return this
     }
 
+    return interpolate(context, { _, _ -> n }, interpolator)
+}
+
+/**
+ * Interpolate a dynamic amount of elements between every two occurrences of elements passing through the channel.
+ *
+ * The operation is _intermediate_ and _stateless_.
+ * This function [consumes][consume] all elements of the original [ReceiveChannel].
+ *
+ * @param context The context of the coroutine.
+ * @param amount A function to compute the amount of elements to interpolate between the actual elements in the channel.
+ * @param interpolator A function to interpolate between the two element occurrences.
+ */
+fun <E> ReceiveChannel<E>.interpolate(context: CoroutineContext = Unconfined,
+                                      amount: (E, E) -> Int,
+                                      interpolator: (Double, E, E) -> E): ReceiveChannel<E> {
     return produce(context) {
         consume {
             val iterator = iterator()
@@ -61,6 +77,7 @@ fun <E> ReceiveChannel<E>.interpolate(n: Int, context: CoroutineContext = Unconf
 
             while (iterator.hasNext()) {
                 val b = iterator.next()
+                val n = amount(a, b)
                 for (i in 1..n) {
                     send(interpolator(i.toDouble() / (n + 1), a, b))
                 }

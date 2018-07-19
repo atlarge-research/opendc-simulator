@@ -28,7 +28,6 @@ import com.atlarge.opendc.model.odc.JpaBootstrap
 import com.atlarge.opendc.model.odc.JpaModel
 import com.atlarge.opendc.model.odc.integration.jpa.persist
 import com.atlarge.opendc.model.odc.integration.jpa.schema.ExperimentState
-import com.atlarge.opendc.model.odc.integration.jpa.schema.interpolate
 import com.atlarge.opendc.model.odc.integration.jpa.schema.MachineState
 import com.atlarge.opendc.model.odc.integration.jpa.transaction
 import com.atlarge.opendc.model.odc.platform.workload.Task
@@ -50,6 +49,7 @@ import mu.KotlinLogging
 import java.io.Closeable
 import javax.persistence.EntityManager
 import kotlin.coroutines.experimental.coroutineContext
+import kotlin.math.max
 import kotlin.system.measureTimeMillis
 import com.atlarge.opendc.model.odc.integration.jpa.schema.Experiment as InternalExperiment
 import com.atlarge.opendc.model.odc.integration.jpa.schema.Task as InternalTask
@@ -112,7 +112,6 @@ class JpaExperiment(private val manager: EntityManager,
                 send(MachineState(
                     0,
                     machine as com.atlarge.opendc.model.odc.integration.jpa.schema.Machine,
-                    machine.state.task as InternalTask?,
                     experiment,
                     time,
                     machine.state.temperature,
@@ -127,11 +126,13 @@ class JpaExperiment(private val manager: EntityManager,
         val machineStates = machines
             .asReceiveChannel()
             .map { machine(it) }
-            .flatMapMerge { port.install(Channel.UNLIMITED, it).interpolate(9) }
+            .flatMapMerge {
+                port.install(Channel.UNLIMITED, it).interpolate(9, interpolator = MachineState.Interpolator)
+            }
 
         // The instrument used for monitoring tasks
         fun task(task: Task): Instrument<InternalTaskState, JpaModel> = {
-            while (true) {
+            while (task.state !is TaskState.Running) {
                 send(InternalTaskState(
                     0,
                     task as InternalTask,
@@ -143,13 +144,41 @@ class JpaExperiment(private val manager: EntityManager,
 
                 hold(10)
             }
+
+            send(InternalTaskState(
+                0,
+                task as InternalTask,
+                experiment,
+                time,
+                task.remaining.toInt(),
+                1
+            ))
+
+            while (!task.finished) {
+                hold(10)
+            }
+
+            send(InternalTaskState(
+                0,
+                task as InternalTask,
+                experiment,
+                time,
+                task.remaining.toInt(),
+                1
+            ))
         }
 
         // The stream of task state measurements
         val taskStates = tasks
             .asReceiveChannel()
-            .map { task(it) }
-            .flatMapMerge { port.install(it).interpolate(9) }
+            .map { task ->
+                val instrument = task(task)
+                port.install(instrument).interpolate(
+                    amount = { a, b  -> max(b.time - a.time - 1, 0).toInt() },
+                    interpolator = InternalTaskState.Interpolator
+                )
+            }
+            .flatMapMerge { it }
 
         // A job which writes the data to database in a separate thread
         val writer = launch {

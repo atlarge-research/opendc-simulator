@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2017 atlarge-research
+ * Copyright (c) 2018 atlarge-research
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,37 +22,28 @@
  * SOFTWARE.
  */
 
-package com.atlarge.opendc.model.odc.integration.jpa.schema
+package com.atlarge.opendc.model.odc.platform.scheduler.stages.task
 
-import com.atlarge.opendc.model.odc.platform.scheduler.Scheduler
-import com.atlarge.opendc.simulator.Instant
-import javax.persistence.Entity
+import com.atlarge.opendc.model.odc.platform.workload.Task
 
 /**
- * An experiment definition for the OpenDC database schema.
- *
- * @property id The identifier of the experiment.
- * @property name The name of the experiment.
- * @property scheduler The scheduler used in the experiment.
- * @property trace The trace used for the simulation.
- * @property path The path of the experiment.
- * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
+ * This interface represents the **T1** stage of the Reference Architecture for Schedulers and provides the scheduler
+ * with a list of eligible tasks to be scheduled.
  */
-@Entity
-data class Experiment(
-    val id: Int,
-    val name: String,
-    val scheduler: Scheduler<*>,
-    val trace: Trace,
-    val path: Path
-) {
+interface TaskEligibilityFilteringPolicy {
     /**
-     * The state of the experiment.
+     * Filter the list of tasks provided as input, based on a filter-policy, e.g. a policy that allows
+     * tasks to pass through only if their dependencies have already finished.
+     *
+     * @param queue The list of tasks that are ready to be scheduled.
+     * @return The tasks that are allowed to be scheduled.
      */
-    var state: ExperimentState = ExperimentState.QUEUED
+    suspend fun filter(queue: Set<Task>): List<Task>
+}
 
-    /**
-     * The last tick that has been simulated.
-     */
-    var last: Instant = 0
+/**
+ * The [FunctionalTaskEligibilityFilteringPolicy] filters tasks based on whether their dependencies have finished running.
+ */
+class FunctionalTaskEligibilityFilteringPolicy : TaskEligibilityFilteringPolicy {
+    override suspend fun filter(queue: Set<Task>): List<Task> = queue.filter { it.ready }
 }

@@ -22,11 +22,11 @@
   ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   ~ SOFTWARE.
   -->
+
 <entity-mappings
     version="2.1"
     xmlns="http://xmlns.jcp.org/xml/ns/persistence/orm"
 >
-
     <package>com.atlarge.opendc.model.odc.integration.jpa.schema</package>
 
     <entity class="Experiment" access="FIELD" name="experiments">
@@ -111,8 +111,6 @@
     </entity>
 
     <entity class="Task" access="FIELD" name="tasks" cacheable="false">
-        <convert converter="com.atlarge.opendc.model.odc.integration.jpa.converter.ParallelizableConverter"
-                 attribute-name="parallelizable"/>
         <attributes>
             <id name="id"/>
             <basic name="flops">
@@ -121,14 +119,20 @@
             <basic name="startTime">
                 <column name="start_tick" column-definition="int(11)"/>
             </basic>
-            <basic name="parallelizable">
-                <column name="parallelizability" column-definition="text"/>
+            <basic name="cores">
+                <column name="core_count" column-definition="int(11)"/>
             </basic>
 
-            <one-to-one name="dependency" target-entity="Task">
-                <join-column name="task_dependency_id"/>
-            </one-to-one>
-            <transient name="dependencies"/>
+            <many-to-one name="job">
+                <join-column name="job_id"/>
+            </many-to-one>
+            <many-to-many name="dependencies" target-entity="Task">
+                <join-table name="task_dependencies">
+                    <join-column name="second_task_id"/>
+                    <inverse-join-column name="first_task_id"/>
+                </join-table>
+            </many-to-many>
+
             <transient name="state"/>
             <transient name="remaining"/>
             <transient name="finished"/>
@@ -290,9 +294,6 @@
                 <column name="load_fraction"/>
             </basic>
 
-            <many-to-one name="task">
-                <join-column name="task_id"/>
-            </many-to-one>
             <many-to-one name="machine">
                 <join-column name="machine_id"/>
             </many-to-one>

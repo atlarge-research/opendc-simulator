@@ -35,8 +35,7 @@ import javax.persistence.PostLoad
  *
  * @property id The unique identifier of the job.
  * @property flops The total amount of flops for the task.
- * @property dependency A dependency on another task.
- * @property parallelizable A flag to indicate the task is parallelizable.
+ * @property cores The amount of cores required for running the task.
  * @property startTime The start time in the simulation.
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
@@ -44,16 +43,10 @@ import javax.persistence.PostLoad
 data class Task(
     override val id: Int,
     override val flops: Long,
-    private val dependency: Task?,
-    override val parallelizable: Boolean,
+    override val cores: Int,
+    override val dependencies: Set<Task>,
     val startTime: Instant
 ) : Task {
-    /**
-     * The dependencies of the task.
-     */
-    override lateinit var dependencies: Set<Task>
-        private set
-
     /**
      * The remaining flops for this task.
      */
@@ -72,6 +65,7 @@ data class Task(
     override lateinit var state: TaskState
         private set
 
+
     /**
      * This method initialises the task object after it has been created by the JPA implementation. We use this
      * initialisation method because JPA implementations only call the default constructor
@@ -79,7 +73,6 @@ data class Task(
     @PostLoad
     internal fun init() {
         remaining = flops
-        dependencies = dependency?.let(::setOf) ?: emptySet()
         state = TaskState.Underway
     }
 
@@ -89,7 +82,7 @@ data class Task(
      * @param time The moment in time the task has arrived at the datacenter.
      */
     override fun arrive(time: Instant) {
-        if (state !is TaskState.Underway) {
+        if (state != TaskState.Underway) {
             throw IllegalStateException("The task has already been submitted to a datacenter")
         }
         remaining = flops

@@ -50,7 +50,7 @@ data class Datacenter(
     /**
      * The task scheduler the datacenter uses.
      */
-    override lateinit var scheduler: Scheduler
+    override lateinit var scheduler: Scheduler<*>
         internal set
 
     /**
