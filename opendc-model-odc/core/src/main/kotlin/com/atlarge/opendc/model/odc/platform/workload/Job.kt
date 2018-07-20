@@ -49,5 +49,5 @@ interface Job {
      * A flag to indicate the job has finished.
      */
     val finished: Boolean
-        get() = !tasks.any { !it.finished }
+        get() = tasks.all { it.finished }
 }

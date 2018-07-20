@@ -326,4 +326,35 @@
             </many-to-one>
         </attributes>
     </entity>
+
+    <!-- Time complexity experiments -->
+    <entity class="StageMeasurement" access="FIELD" name="stage_measurements">
+        <attributes>
+            <id name="id">
+                <generated-value strategy="IDENTITY"/>
+            </id>
+            <basic name="stage">
+                <column name="stage" column-definition="int(11)"/>
+            </basic>
+            <basic name="time">
+                <column name="tick" column-definition="int(11)" />
+            </basic>
+            <basic name="cpu">
+                <column name="cpu" column-definition="int(11)" />
+            </basic>
+            <basic name="wall">
+                <column name="wall" column-definition="int(11)" />
+            </basic>
+            <basic name="size">
+                <column name="size" column-definition="int(11)" />
+            </basic>
+            <basic name="iterations">
+                <column name="iterations" column-definition="int(11)" />
+            </basic>
+
+            <many-to-one name="experiment">
+                <join-column name="experiment_id"/>
+            </many-to-one>
+        </attributes>
+    </entity>
 </entity-mappings>

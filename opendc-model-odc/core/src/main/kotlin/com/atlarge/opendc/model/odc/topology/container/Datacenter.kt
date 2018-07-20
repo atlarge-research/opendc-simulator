@@ -82,6 +82,9 @@ interface Datacenter : Process<Unit, Topology> {
 
         logger.info { "Initialising datacenter with ${machines.size} machines" }
 
+        // Wait for all resources to initialise
+        hold(1, queue)
+
         // Register all machines to the scheduler
         scheduler.send(Scheduler.Resources(LinkedHashSet(machines), emptySet()))
 

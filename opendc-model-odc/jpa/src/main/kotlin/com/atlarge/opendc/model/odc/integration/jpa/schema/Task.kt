@@ -40,7 +40,7 @@ import javax.persistence.PostLoad
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
 @Entity
-data class Task(
+class Task(
     override val id: Int,
     override val flops: Long,
     override val cores: Int,
@@ -108,4 +108,6 @@ data class Task(
             state = TaskState.Finished(state as TaskState.Running, time)
         }
     }
+
+    override fun toString(): String = "Task(id=$id, flops=$flops, cores=$cores, dependencies=$dependencies)"
 }

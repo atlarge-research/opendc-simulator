@@ -28,6 +28,7 @@ import com.atlarge.opendc.model.odc.OdcModel
 import com.atlarge.opendc.model.odc.platform.workload.Task
 import com.atlarge.opendc.model.odc.topology.machine.Machine
 import com.atlarge.opendc.simulator.Process
+import com.atlarge.opendc.simulator.util.EventBus
 
 /**
  * A cloud scheduler interface that schedules tasks across machines.
@@ -40,6 +41,11 @@ interface Scheduler<S> : Process<S, OdcModel> {
      * The name of this scheduler.
      */
     val name: String
+
+    /**
+     * The event bus of the scheduler.
+     */
+    val bus: EventBus
 
     /**
      * This message is sent to a scheduler to indicate a scheduling cycle.

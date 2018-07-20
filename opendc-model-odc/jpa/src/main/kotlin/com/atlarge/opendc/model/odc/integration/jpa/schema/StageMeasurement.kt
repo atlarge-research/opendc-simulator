@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2017 atlarge-research
+ * Copyright (c) 2018 atlarge-research
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,37 +24,27 @@
 
 package com.atlarge.opendc.model.odc.integration.jpa.schema
 
-import com.atlarge.opendc.model.odc.platform.workload.Job
-import com.atlarge.opendc.model.odc.platform.workload.User
+import com.atlarge.opendc.simulator.Instant
 import javax.persistence.Entity
 
 /**
- * A [Job] backed by the JPA API and an underlying database connection.
+ * The measurement of a stage.
  *
- * @property id The unique identifier of the job.
- * @property tasks The collection of tasks the job consists of.
- * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
+ * @property id The identifier of the measurement.
+ * @property experiment The experiment associated with the measurement.
+ * @property stage The stage of the measurement.
+ * @property cpu The duration in cpu time of the stage.
+ * @property wall The duration in wall time of the stage.
+ * @property size The input size of the stage.
+ * @property iterations The amount of iterations.
  */
 @Entity
-class Job(
-    override val id: Int,
-    override val tasks: Set<Task>
-) : Job {
-    /**
-     * The owner of the job, which is a singleton, since the database has no
-     * concept of ownership yet.
-     */
-    override val owner: User = object : User {
-        /**
-         * The unique identifier of the user.
-         */
-        override val id: Int = 0
+data class StageMeasurement(val id: Int,
+                            val experiment: Experiment,
+                            val stage: Int,
+                            val time: Instant,
+                            val cpu: Long,
+                            val wall: Long,
+                            val size: Int,
+                            val iterations: Int)
 
-        /**
-         * The name of this user.
-         */
-        override val name: String = "admin"
-    }
-
-    override fun toString(): String = "Job(id=$id, tasks=$tasks, owner=$owner)"
-}

@@ -25,6 +25,7 @@
 package com.atlarge.opendc.model.odc.platform.scheduler
 
 import com.atlarge.opendc.model.odc.OdcModel
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.StageMeasurementAccumulator
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.MachineDynamicFilteringPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.MachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.TaskEligibilityFilteringPolicy
@@ -32,12 +33,12 @@ import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.TaskSortingPo
 import com.atlarge.opendc.model.odc.platform.workload.Task
 import com.atlarge.opendc.model.odc.topology.machine.Machine
 import com.atlarge.opendc.simulator.Context
+import com.atlarge.opendc.simulator.util.EventBus
 import java.util.*
 
 /**
  * A [Scheduler] that distributes work through a multi-stage process.
  *
- * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  * @property name The name of the scheduler.
  * @property taskEligibilityFilteringPolicy The policy used to filter tasks based on eligibility (T1).
  * @property taskSortingPolicy The policy used to sort tasks (T2).
@@ -51,6 +52,11 @@ class StageScheduler(
     private val machineDynamicFilteringPolicy: MachineDynamicFilteringPolicy,
     private val machineSelectionPolicy: MachineSelectionPolicy
 ) : Scheduler<StageScheduler.State> {
+    /**
+     * The event bus of the scheduler.
+     */
+    override val bus = EventBus()
+
     /**
      * The initial state of the scheduler.
      */
@@ -78,6 +84,9 @@ class StageScheduler(
      * Run the simulation kernel for this entity.
      */
     override suspend fun Context<State, OdcModel>.run() {
+        // Start the event bus
+        start(bus)
+
         while (true) {
             val msg = receive()
             when (msg) {
@@ -116,6 +125,9 @@ class StageScheduler(
      * @param tasks The tasks that have been submitted to the scheduler.
      */
     private suspend fun Context<State, OdcModel>.schedule(tasks: Set<Task>) {
+        val acc = StageMeasurementAccumulator(time, tasks.size)
+        acc.start()
+
         // J2 Create list of eligible jobs
         // TODO For now, assume all jobs are eligible
 
@@ -150,20 +162,27 @@ class StageScheduler(
 
         // T1 Filter tasks on eligibility
         // For now, eligibility of a tasks means its dependencies have finished
-        val filteredTasks = taskEligibilityFilteringPolicy.filter(state.queued)
+        val filteredTasks = acc.runStage(1, input = state.queued.size) {
+            taskEligibilityFilteringPolicy.filter(state.queued)
+        }
 
         // T2 Sort task on criterion
-        val sortedTasks = taskSortingPolicy.sort(filteredTasks)
-
+        val sortedTasks = acc.runStage(2, input = filteredTasks.size) {
+            taskSortingPolicy.sort(filteredTasks)
+        }
 
         // M6 Pass tasks on to Local Resource Manager (LRM)
         // TODO Move this process into a separate entity functioning as a LRM, independent of the global scheduler
         sortedTasks.forEach {
             // R4 Filter machines based on dynamic information
-            val filteredMachines = machineDynamicFilteringPolicy.filter(state.machines, it)
+            val filteredMachines = acc.runStage(3, input = state.machines.size) {
+                machineDynamicFilteringPolicy.filter(state.machines, it)
+            }
 
             // R5 Select and allocate resource(s)
-            val machine = machineSelectionPolicy.select(filteredMachines, it)
+            val machine = acc.runStage(4, input = filteredMachines.size) {
+                machineSelectionPolicy.select(filteredMachines, it)
+            }
 
             // T4 Submit task to machine
             if (machine != null) {
@@ -175,5 +194,7 @@ class StageScheduler(
             }
         }
 
+        acc.end()
+        acc.measurements.forEach { bus.publish(it) }
     }
 }

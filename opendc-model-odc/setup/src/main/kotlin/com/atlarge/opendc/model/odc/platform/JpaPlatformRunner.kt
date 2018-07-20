@@ -45,10 +45,15 @@ fun main(args: Array<String>) {
     properties["javax.persistence.jdbc.url"] = env["PERSISTENCE_URL"] ?: ""
     properties["javax.persistence.jdbc.user"] = env["PERSISTENCE_USER"] ?: ""
     properties["javax.persistence.jdbc.password"] = env["PERSISTENCE_PASSWORD"] ?: ""
+
     val factory = Persistence.createEntityManagerFactory("opendc-simulator", properties)
 
-    val timeout = 30000L
-    val experiments = JpaExperimentManager(factory)
+    val collectMachineStates = env["COLLECT_MACHINE_STATES"]?.equals("off", ignoreCase = true)?.not() ?: false
+    val collectTaskStates = env["COLLECT_TASK_STATES"]?.equals("off", ignoreCase = true)?.not() ?: false
+    val collectStageMeasurements = env["COLLECT_STAGE_MEASUREMENTS"]?.equals("off", ignoreCase = true)?.not() ?: true
+
+    val timeout = 500_000L
+    val experiments = JpaExperimentManager(factory, collectMachineStates, collectTaskStates, collectStageMeasurements)
     val kernel = OmegaKernel
 
     val dispatcher = ForkJoinPool().asCoroutineDispatcher()

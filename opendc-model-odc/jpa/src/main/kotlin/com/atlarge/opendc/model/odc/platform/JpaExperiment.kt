@@ -30,6 +30,7 @@ import com.atlarge.opendc.model.odc.integration.jpa.persist
 import com.atlarge.opendc.model.odc.integration.jpa.schema.ExperimentState
 import com.atlarge.opendc.model.odc.integration.jpa.schema.MachineState
 import com.atlarge.opendc.model.odc.integration.jpa.transaction
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.StageMeasurement
 import com.atlarge.opendc.model.odc.platform.workload.Task
 import com.atlarge.opendc.model.odc.platform.workload.TaskState
 import com.atlarge.opendc.model.odc.topology.container.Rack
@@ -37,11 +38,16 @@ import com.atlarge.opendc.model.odc.topology.container.Room
 import com.atlarge.opendc.model.odc.topology.machine.Machine
 import com.atlarge.opendc.model.topology.destinations
 import com.atlarge.opendc.simulator.Duration
-import com.atlarge.opendc.simulator.instrumentation.*
+import com.atlarge.opendc.simulator.instrumentation.Instrument
+import com.atlarge.opendc.simulator.instrumentation.flatMapMerge
+import com.atlarge.opendc.simulator.instrumentation.interpolate
+import com.atlarge.opendc.simulator.instrumentation.merge
 import com.atlarge.opendc.simulator.kernel.Kernel
 import com.atlarge.opendc.simulator.platform.Experiment
+import com.atlarge.opendc.simulator.util.instrument
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.asReceiveChannel
+import kotlinx.coroutines.experimental.channels.filter
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.newSingleThreadContext
@@ -53,6 +59,7 @@ import kotlin.coroutines.experimental.coroutineContext
 import kotlin.math.max
 import kotlin.system.measureTimeMillis
 import com.atlarge.opendc.model.odc.integration.jpa.schema.Experiment as InternalExperiment
+import com.atlarge.opendc.model.odc.integration.jpa.schema.StageMeasurement as InternalStageMeasurement
 import com.atlarge.opendc.model.odc.integration.jpa.schema.Task as InternalTask
 import com.atlarge.opendc.model.odc.integration.jpa.schema.TaskState as InternalTaskState
 import com.atlarge.opendc.model.odc.integration.jpa.schema.Trace as InternalTrace
@@ -62,10 +69,16 @@ import com.atlarge.opendc.model.odc.integration.jpa.schema.Trace as InternalTrac
  *
  * @property manager The entity manager for the database connection.
  * @property experiment The internal experiment definition to use.
+ * @property collectMachineStates Flag to indicate machine states will be collected.
+ * @property collectTaskStates Flag to indicate task states will be collected.
+ * @property collectStageMeasurements Flag to indicate stage measurements will be collected.
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
 class JpaExperiment(private val manager: EntityManager,
-                    private val experiment: InternalExperiment) : Experiment<Unit>, Closeable {
+                    private val experiment: InternalExperiment,
+                    private val collectMachineStates: Boolean = true,
+                    private val collectTaskStates: Boolean = true,
+                    private val collectStageMeasurements: Boolean = false) : Experiment<Unit>, Closeable {
     /**
      * The logging instance.
      */
@@ -101,92 +114,121 @@ class JpaExperiment(private val manager: EntityManager,
         // The port we use to install the instruments
         val port = simulation.openPort()
 
-        // Find all machines in the datacenter
-        val machines = simulation.model.run {
-            section.datacenter.outgoingEdges.destinations<Room>("room").asSequence()
-                .flatMap { it.outgoingEdges.destinations<Rack>("rack").asSequence() }
-                .flatMap { it.outgoingEdges.destinations<Machine>("machine").asSequence() }.toList()
-        }
-
-        // The instrument used for monitoring machines
-        fun machine(machine: Machine): Instrument<MachineState, JpaModel> = {
-            while (true) {
-                send(MachineState(
-                    0,
-                    machine as com.atlarge.opendc.model.odc.integration.jpa.schema.Machine,
-                    experiment,
-                    time,
-                    machine.state.temperature,
-                    machine.state.memory,
-                    machine.state.load
-                ))
-                hold(10)
-            }
+        // Capture the stage measurements of the scheduler
+        val stages = if (collectStageMeasurements) {
+            port.install(Channel.UNLIMITED, experiment.scheduler.bus.instrument())
+                .filter { it is StageMeasurement }
+                .map {
+                    it as StageMeasurement
+                    InternalStageMeasurement(0, experiment, it.stage, it.time, it.cpu, it.wall, it.size, it.iterations)
+                }
+        } else {
+            emptyList<InternalStageMeasurement>().asReceiveChannel()
         }
 
         // The stream of machine state measurements
-        val machineStates = machines
-            .asReceiveChannel()
-            .map { machine(it) }
-            .flatMapMerge {
-                port.install(Channel.UNLIMITED, it).interpolate(9, interpolator = MachineState.Interpolator)
+        val machineStates = if (collectMachineStates) {
+            // Find all machines in the datacenter
+            val machines = simulation.model.run {
+                section.datacenter.outgoingEdges.destinations<Room>("room").asSequence()
+                    .flatMap { it.outgoingEdges.destinations<Rack>("rack").asSequence() }
+                    .flatMap { it.outgoingEdges.destinations<Machine>("machine").asSequence() }.toList()
             }
 
-        // The instrument used for monitoring tasks
-        fun task(task: Task): Instrument<InternalTaskState, JpaModel> = {
-            while (task.state !is TaskState.Running) {
-                send(InternalTaskState(
-                    0,
-                    task as InternalTask,
-                    experiment,
-                    time,
-                    task.remaining.toInt(),
-                    1
-                ))
-
-                hold(10)
+            // The instrument used for monitoring machines
+            fun machine(machine: Machine): Instrument<MachineState, JpaModel> = {
+                while (true) {
+                    send(
+                        MachineState(
+                            0,
+                            machine as com.atlarge.opendc.model.odc.integration.jpa.schema.Machine,
+                            experiment,
+                            time,
+                            machine.state.temperature,
+                            machine.state.memory,
+                            machine.state.load
+                        )
+                    )
+                    hold(10)
+                }
             }
 
-            send(InternalTaskState(
-                0,
-                task as InternalTask,
-                experiment,
-                time,
-                task.remaining.toInt(),
-                1
-            ))
-
-            while (!task.finished) {
-                hold(10)
-            }
-
-            send(InternalTaskState(
-                0,
-                task as InternalTask,
-                experiment,
-                time,
-                task.remaining.toInt(),
-                1
-            ))
+            machines
+                .asReceiveChannel()
+                .map { machine(it) }
+                .flatMapMerge {
+                    port.install(Channel.UNLIMITED, it).interpolate(9, interpolator = MachineState.Interpolator)
+                }
+        } else {
+            emptyList<MachineState>().asReceiveChannel()
         }
 
-        // The stream of task state measurements
-        val taskStates = tasks
-            .asReceiveChannel()
-            .map { task ->
-                val instrument = task(task)
-                port.install(instrument).interpolate(
-                    amount = { a, b  -> max(b.time - a.time - 1, 0).toInt() },
-                    interpolator = InternalTaskState.Interpolator
+        val taskStates = if (collectTaskStates) {
+            // The instrument used for monitoring tasks
+            fun task(task: Task): Instrument<InternalTaskState, JpaModel> = {
+                while (task.state !is TaskState.Running) {
+                    send(
+                        InternalTaskState(
+                            0,
+                            task as InternalTask,
+                            experiment,
+                            time,
+                            task.remaining.toInt(),
+                            1
+                        )
+                    )
+
+                    hold(10)
+                }
+
+                send(
+                    InternalTaskState(
+                        0,
+                        task as InternalTask,
+                        experiment,
+                        time,
+                        task.remaining.toInt(),
+                        1
+                    )
+                )
+
+                while (!task.finished) {
+                    hold(10)
+                }
+
+                send(
+                    InternalTaskState(
+                        0,
+                        task,
+                        experiment,
+                        time,
+                        task.remaining.toInt(),
+                        1
+                    )
                 )
             }
-            .flatMapMerge { it }
+
+            // The stream of task state measurements
+            tasks
+                .asReceiveChannel()
+                .map { task ->
+                    val instrument = task(task)
+                    port.install(instrument).interpolate(
+                        amount = { a, b -> max(b.time - a.time - 1, 0).toInt() },
+                        interpolator = InternalTaskState.Interpolator
+                    )
+                }
+                .flatMapMerge { it }
+        } else {
+            emptyList<InternalTaskState>().asReceiveChannel()
+        }
 
         // A job which writes the data to database in a separate thread
         val writerThread = newSingleThreadContext("writer")
-        val writer = launch(writerThread) {
-            taskStates
+        val writer = launch {
+            stages
                 .merge(coroutineContext, machineStates)
+                .merge(coroutineContext, taskStates)
                 .persist(manager.entityManagerFactory)
         }
 
