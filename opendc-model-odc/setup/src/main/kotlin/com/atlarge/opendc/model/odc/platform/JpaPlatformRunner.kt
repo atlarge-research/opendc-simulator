@@ -25,8 +25,10 @@
 package com.atlarge.opendc.model.odc.platform
 
 import com.atlarge.opendc.omega.OmegaKernel
+import kotlinx.coroutines.experimental.asCoroutineDispatcher
+import kotlinx.coroutines.experimental.launch
 import mu.KotlinLogging
-import java.util.concurrent.Executors
+import java.util.concurrent.ForkJoinPool
 import javax.persistence.Persistence
 
 val logger = KotlinLogging.logger {}
@@ -46,17 +48,18 @@ fun main(args: Array<String>) {
     val factory = Persistence.createEntityManagerFactory("opendc-simulator", properties)
 
     val timeout = 30000L
-    val threads = 4
-    val executorService = Executors.newFixedThreadPool(threads)
     val experiments = JpaExperimentManager(factory)
     val kernel = OmegaKernel
+
+    val dispatcher = ForkJoinPool().asCoroutineDispatcher()
 
     logger.info { "Waiting for enqueued experiments..." }
     while (true) {
         experiments.poll()?.let { experiment ->
             logger.info { "Found experiment. Submitting for simulation now..." }
-            executorService.submit {
-                experiment.use { it.run(kernel, timeout) }
+            launch(dispatcher) {
+                experiment.run(kernel, timeout)
+                experiment.close()
             }
         }
 

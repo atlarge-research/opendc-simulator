@@ -44,6 +44,7 @@ import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.asReceiveChannel
 import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.newSingleThreadContext
 import kotlinx.coroutines.experimental.runBlocking
 import mu.KotlinLogging
 import java.io.Closeable
@@ -69,6 +70,7 @@ class JpaExperiment(private val manager: EntityManager,
      * The logging instance.
      */
     private val logger = KotlinLogging.logger {}
+
 
     /**
      * Run the experiment using the specified simulation kernel implementation.
@@ -181,8 +183,10 @@ class JpaExperiment(private val manager: EntityManager,
             .flatMapMerge { it }
 
         // A job which writes the data to database in a separate thread
-        val writer = launch {
-            taskStates.merge(coroutineContext, machineStates)
+        val writerThread = newSingleThreadContext("writer")
+        val writer = launch(writerThread) {
+            taskStates
+                .merge(coroutineContext, machineStates)
                 .persist(manager.entityManagerFactory)
         }
 
@@ -195,6 +199,9 @@ class JpaExperiment(private val manager: EntityManager,
 
             // Wait for writer thread to finish
             writer.join()
+
+            // Close the writer thread
+            writerThread.close()
         }
 
         logger.info { "Starting simulation" }
