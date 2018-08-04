@@ -51,9 +51,18 @@ fun main(args: Array<String>) {
     val collectMachineStates = env["COLLECT_MACHINE_STATES"]?.equals("off", ignoreCase = true)?.not() ?: false
     val collectTaskStates = env["COLLECT_TASK_STATES"]?.equals("off", ignoreCase = true)?.not() ?: false
     val collectStageMeasurements = env["COLLECT_STAGE_MEASUREMENTS"]?.equals("off", ignoreCase = true)?.not() ?: true
+    val collectTaskMetrics = env["COLLECT_TASK_METRICS"]?.equals("off", ignoreCase = true)?.not() ?: true
+    val collectJobMetrics = env["COLLECT_JOB_METRICS"]?.equals("off", ignoreCase = true)?.not() ?: true
 
     val timeout = 500_000L
-    val experiments = JpaExperimentManager(factory, collectMachineStates, collectTaskStates, collectStageMeasurements)
+    val experiments = JpaExperimentManager(
+        factory = factory,
+        collectMachineStates = collectMachineStates,
+        collectTaskStates = collectTaskStates,
+        collectStageMeasurements = collectStageMeasurements,
+        collectTaskMetrics = collectTaskMetrics,
+        collectJobMetrics = collectJobMetrics
+    )
     val kernel = OmegaKernel
 
     val dispatcher = ForkJoinPool().asCoroutineDispatcher()

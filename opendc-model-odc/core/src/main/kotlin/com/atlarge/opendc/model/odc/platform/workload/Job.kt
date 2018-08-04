@@ -51,3 +51,37 @@ interface Job {
     val finished: Boolean
         get() = tasks.all { it.finished }
 }
+
+/**
+ * Create a topological sorting of the tasks in a job.
+ *
+ * @return The list of tasks within the job topologically sorted.
+ */
+fun Job.toposort(): List<Task> {
+    val res = mutableListOf<Task>()
+    val visited = mutableSetOf<Task>()
+    val adjacent = mutableMapOf<Task, MutableList<Task>>()
+
+    for (task in tasks) {
+        for (dependency in task.dependencies) {
+            adjacent.getOrPut(dependency) { mutableListOf() }.add(task)
+        }
+    }
+
+    fun visit(task: Task) {
+        visited.add(task)
+
+        adjacent[task] ?: emptyList<Task>()
+            .asSequence()
+            .filter { it !in visited }
+            .forEach { visit(it) }
+
+        res.add(task)
+    }
+
+    tasks
+        .asSequence()
+        .filter { it !in visited }
+        .forEach { visit(it) }
+    return res
+}

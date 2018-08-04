@@ -24,6 +24,7 @@
 
 package com.atlarge.opendc.model.odc.platform.workload
 
+import com.atlarge.opendc.simulator.Duration
 import com.atlarge.opendc.simulator.Instant
 
 
@@ -59,7 +60,37 @@ sealed class TaskState {
      * @property previous The previous state of the task.
      * @property at The moment in time the task finished.
      */
-    data class Finished(val previous: Running, val at: Instant) : TaskState()
+    data class Finished(val previous: Running, val at: Instant) : TaskState() {
+        /**
+         * The finish time of a task.
+         */
+        val finishTime: Instant
+            get() = at
+
+        /**
+         * The start time of a task.
+         */
+        val startTime: Instant
+            get() = previous.at
+
+        /**
+         * The enter time of a task.
+         */
+        val submitTime: Instant
+            get() = previous.previous.at
+
+        /**
+         * The execution time of a task.
+         */
+        val executionTime: Duration
+            get() = finishTime - startTime
+
+        /**
+         * The waiting time of a task.
+         */
+        val waitingTime: Duration
+            get() = startTime - submitTime
+    }
 
     /**
      * A state to indicate the task has failed.

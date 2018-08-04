@@ -357,4 +357,61 @@
             </many-to-one>
         </attributes>
     </entity>
+
+    <entity class="JobMetrics" access="FIELD" name="job_metrics">
+        <attributes>
+            <id name="id">
+                <generated-value strategy="IDENTITY"/>
+            </id>
+            <basic name="criticalPath">
+                <column name="critical_path" column-definition="int(11)"/>
+            </basic>
+            <basic name="criticalPathLength">
+                <column name="critical_path_length" column-definition="int(11)"/>
+            </basic>
+            <basic name="waiting">
+                <column name="waiting_time" column-definition="int(11)"/>
+            </basic>
+            <basic name="makespan">
+                <column name="makespan" column-definition="int(11)"/>
+            </basic>
+            <basic name="nsl">
+                <column name="nsl" column-definition="int(11)"/>
+            </basic>
+
+            <many-to-one name="experiment">
+                <join-column name="experiment_id"/>
+            </many-to-one>
+            <many-to-one name="job">
+                <join-column name="job_id"/>
+            </many-to-one>
+        </attributes>
+    </entity>
+
+    <entity class="TaskMetrics" access="FIELD" name="task_metrics">
+        <attributes>
+            <id name="id">
+                <generated-value strategy="IDENTITY"/>
+            </id>
+            <basic name="waiting">
+                <column name="waiting" column-definition="int(11)"/>
+            </basic>
+            <basic name="execution">
+                <column name="execution" column-definition="int(11)"/>
+            </basic>
+            <basic name="turnaround">
+                <column name="turnaround" column-definition="int(11)"/>
+            </basic>
+
+            <many-to-one name="experiment">
+                <join-column name="experiment_id"/>
+            </many-to-one>
+            <many-to-one name="task">
+                <join-column name="task_id"/>
+            </many-to-one>
+            <many-to-one name="job">
+                <join-column name="job_id"/>
+            </many-to-one>
+        </attributes>
+    </entity>
 </entity-mappings>
