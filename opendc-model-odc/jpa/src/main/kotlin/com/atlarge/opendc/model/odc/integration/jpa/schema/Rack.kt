@@ -39,7 +39,7 @@ import javax.persistence.Entity
  */
 @Entity
 class Rack(
-    id: Int,
+    id: Int?,
     val name: String,
     val capacity: Int,
     val powerCapacity: Int,

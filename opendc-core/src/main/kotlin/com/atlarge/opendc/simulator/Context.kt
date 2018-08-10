@@ -34,7 +34,7 @@ import kotlin.coroutines.experimental.CoroutineContext
  *
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-interface Context<S, M> : CoroutineContext.Element {
+interface Context<S, out M> : CoroutineContext.Element {
     /**
      * The model of simulation in which the entity exists.
      */
@@ -54,7 +54,7 @@ interface Context<S, M> : CoroutineContext.Element {
     /**
      * The [Entity] associated with this context.
      */
-    val self: Entity<S, M>
+    val self: Entity<S>
 
     /**
      * The sender of the last received message or `null` in case the process has not received any messages yet.
@@ -62,7 +62,7 @@ interface Context<S, M> : CoroutineContext.Element {
      * Note that this property is only guaranteed to be correct when accessing after a single suspending call. Methods
      * like `hold()` and `interrupt()` may change the value of this property.
      */
-    val sender: Entity<*, *>?
+    val sender: Entity<*>?
 
     /**
      * The observable state of the entity bound to this scope.
@@ -72,7 +72,25 @@ interface Context<S, M> : CoroutineContext.Element {
     /**
      * The observable state of an [Entity] in simulation, which is provided by the simulation context.
      */
-    val <E : Entity<S, *>, S> E.state: S
+    val <E : Entity<S>, S> E.state: S
+
+    /**
+     * Asynchronously start the given [Process] in simulation. The process will be scheduled by the kernel as soon
+     * as possible. If the process is already running, the method returns `true`.
+     *
+     * @param process The process to start.
+     * @return `true` if the entity had not yet been registered, `false` otherwise.
+     */
+    fun start(process: Process<*, M>): Boolean
+
+    /**
+     * Stop the [Process] associated with the given [Entity] from further participating in the simulation.
+     *
+     * @param entity The entity to stop the process of.
+     * @return `true` if the process of the entity was still running, `false` otherwise (there is no process
+     * associated or it has already terminated).
+     */
+    fun stop(entity: Entity<*>): Boolean
 
     /**
      * Interrupt an [Entity] process in simulation.
@@ -84,7 +102,7 @@ interface Context<S, M> : CoroutineContext.Element {
      *
      * @param interrupt The interrupt to throw at the entity.
      */
-    suspend fun Entity<*, *>.interrupt(interrupt: Interrupt)
+    suspend fun Entity<*>.interrupt(interrupt: Interrupt)
 
     /**
      * Interrupt an [Entity] process in simulation.
@@ -92,7 +110,7 @@ interface Context<S, M> : CoroutineContext.Element {
      * @see [Entity.interrupt(Interrupt)]
      * @param reason The reason for interrupting the entity.
      */
-    suspend fun Entity<*, *>.interrupt(reason: String) = interrupt(Interrupt(reason))
+    suspend fun Entity<*>.interrupt(reason: String) = interrupt(Interrupt(reason))
 
     /**
      * Suspend the [Context] of the [Entity] in simulation for the given duration of simulation time before resuming
@@ -142,7 +160,7 @@ interface Context<S, M> : CoroutineContext.Element {
      * @param sender The sender of the message.
      * @param delay The amount of time to wait before the message should be received by the entity.
      */
-    suspend fun Entity<*, *>.send(msg: Any, sender: Entity<*, *>, delay: Duration = 0)
+    suspend fun Entity<*>.send(msg: Any, sender: Entity<*>? = null, delay: Duration = 0)
 
     /**
      * Send the given message to the specified entity, without providing any guarantees about the actual delivery of
@@ -151,7 +169,7 @@ interface Context<S, M> : CoroutineContext.Element {
      * @param msg The message to send.
      * @param delay The amount of time to wait before the message should be received by the entity.
      */
-    suspend fun Entity<*, *>.send(msg: Any, delay: Duration = 0) = send(msg, self, delay)
+    suspend fun Entity<*>.send(msg: Any, delay: Duration = 0) = send(msg, self, delay)
 
     /**
      * This key provides users access to an untyped process context in case the coroutine runs inside a simulation.

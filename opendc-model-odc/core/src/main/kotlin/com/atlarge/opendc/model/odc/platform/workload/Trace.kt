@@ -33,5 +33,5 @@ interface Trace {
     /**
      * The [Job]s in the trace.
      */
-    val jobs: Set<Job>
+    val jobs: List<Job>
 }

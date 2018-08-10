@@ -25,13 +25,8 @@
 package com.atlarge.opendc.model.odc.integration.jpa.schema
 
 import com.atlarge.opendc.simulator.Instant
-import com.atlarge.opendc.simulator.instrumentation.interpolate
 import com.atlarge.opendc.simulator.instrumentation.lerp
-import kotlinx.coroutines.experimental.Unconfined
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consume
 import javax.persistence.Entity
-import kotlin.coroutines.experimental.CoroutineContext
 
 /**
  * The state of a [Task].
@@ -46,29 +41,25 @@ import kotlin.coroutines.experimental.CoroutineContext
  */
 @Entity
 data class TaskState(
-    val id: Int,
+    val id: Int?,
     val task: Task,
     val experiment: Experiment,
     val time: Instant,
     val remaining: Int,
     val cores: Int
-)
-
-/**
- * Linearly interpolate [n] amount of elements between every two occurrences of task progress measurements represented
- * as [TaskState] instances passing through the channel.
- *
- * The operation is _intermediate_ and _stateless_.
- * This function [consumes][consume] all elements of the original [ReceiveChannel].
- *
- * @param context The context of the coroutine.
- * @param n The amount of elements to interpolate between the actual elements in the channel.
- */
-fun ReceiveChannel<TaskState>.interpolate(n: Int, context: CoroutineContext = Unconfined): ReceiveChannel<TaskState> =
-    interpolate(n, context) { f, a, b ->
-        a.copy(
-            id = 0,
-            time = lerp(a.time, b.time, f),
-            remaining = lerp(a.remaining, b.remaining, f)
-        )
+) {
+    companion object {
+        /**
+         * A linear interpolator for [TaskState] instances.
+         */
+        val Interpolator: (Double, TaskState, TaskState) -> TaskState = { f, a, b ->
+            a.copy(
+                id = 0,
+                time = lerp(a.time, b.time, f),
+                remaining = lerp(a.remaining, b.remaining, f)
+            )
+        }
     }
+}
+
+

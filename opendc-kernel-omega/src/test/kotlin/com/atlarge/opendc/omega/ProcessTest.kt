@@ -51,7 +51,7 @@ internal class ProcessTest {
     @Test
     fun `simulation will not resume frozen process`() {
         val bootstrap: Bootstrap<Unit> = Bootstrap.create { ctx ->
-            ctx.register(FreezeProcess)
+            ctx.start(FreezeProcess)
             ctx.schedule("Hello", destination = FreezeProcess, delay = 1)
             ctx.schedule("Hello", destination = FreezeProcess, delay = 1)
         }

@@ -24,20 +24,25 @@
 
 package com.atlarge.opendc.model.odc.integration.jpa.converter
 
-import com.atlarge.opendc.model.odc.platform.scheduler.FifoScheduler
 import com.atlarge.opendc.model.odc.platform.scheduler.Scheduler
-import com.atlarge.opendc.model.odc.platform.scheduler.SrtfScheduler
+import com.atlarge.opendc.model.odc.platform.scheduler.StageScheduler
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.BestFitMachineSelectionPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.FirstFitMachineSelectionPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.FunctionalMachineDynamicFilteringPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.RandomMachineSelectionPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.WorstFitMachineSelectionPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.FifoSortingPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.FunctionalTaskEligibilityFilteringPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.RandomSortingPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.SrtfSortingPolicy
 import javax.persistence.AttributeConverter
 
 /**
  * An internal [AttributeConverter] that maps a name of a scheduler to the actual scheduler implementation.
- * The converter currently chooses between the following two schedulers:
- * - [FifoScheduler] (default)
- * - [SrtfScheduler]
  *
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-class SchedulerConverter : AttributeConverter<Scheduler, String> {
+class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
     /**
      * Converts the data stored in the database column into the
      * value to be stored in the entity attribute.
@@ -49,9 +54,41 @@ class SchedulerConverter : AttributeConverter<Scheduler, String> {
      * @param dbData the data from the database column to be converted
      * @return the converted value to be stored in the entity attribute
      */
-    override fun convertToEntityAttribute(dbData: String?): Scheduler = when (dbData?.toUpperCase()) {
-        "SRTF" -> SrtfScheduler()
-        else -> FifoScheduler()
+    override fun convertToEntityAttribute(dbData: String?): Scheduler<*> =
+        dbData?.let { convert(it.toUpperCase()) } ?: throw IllegalArgumentException("The scheduler $dbData does not exist")
+
+    /**
+     * Convert a name of a scheduler into a [StageScheduler] based on the pattern `SORTING_POLICY-SELECTION_POLICY`.
+     */
+    private fun convert(name: String): StageScheduler? {
+        val parts = name.split("-")
+        if (parts.size < 2) {
+            return null
+        }
+
+        val (sorting, selection) = parts
+        val sortingPolicy = when (sorting) {
+            "FIFO" -> FifoSortingPolicy()
+            "SRTF" -> SrtfSortingPolicy()
+            "RANDOM" -> RandomSortingPolicy()
+            else -> return null
+        }
+
+        val selectionPolicy = when(selection) {
+            "FIRSTFIT" -> FirstFitMachineSelectionPolicy()
+            "BESTFIT" -> BestFitMachineSelectionPolicy()
+            "WORSTFIT" -> WorstFitMachineSelectionPolicy()
+            "RANDOM" -> RandomMachineSelectionPolicy()
+            else -> return null
+        }
+
+        return StageScheduler(
+            name = name,
+            taskEligibilityFilteringPolicy = FunctionalTaskEligibilityFilteringPolicy(),
+            taskSortingPolicy = sortingPolicy,
+            machineDynamicFilteringPolicy =  FunctionalMachineDynamicFilteringPolicy(),
+            machineSelectionPolicy = selectionPolicy
+        )
     }
 
     /**
@@ -61,6 +98,5 @@ class SchedulerConverter : AttributeConverter<Scheduler, String> {
      * @param attribute the entity attribute value to be converted
      * @return the converted data to be stored in the database column
      */
-    override fun convertToDatabaseColumn(attribute: Scheduler?): String =
-        attribute?.name?.toUpperCase() ?: "FIFO"
+    override fun convertToDatabaseColumn(attribute: Scheduler<*>): String = attribute.name
 }

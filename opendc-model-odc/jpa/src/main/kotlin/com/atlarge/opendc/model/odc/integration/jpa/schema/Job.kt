@@ -36,9 +36,9 @@ import javax.persistence.Entity
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
 @Entity
-data class Job(
+class Job(
     override val id: Int,
-    override val tasks: Set<Task>
+    override val tasks: MutableSet<Task>
 ) : Job {
     /**
      * The owner of the job, which is a singleton, since the database has no
@@ -55,4 +55,6 @@ data class Job(
          */
         override val name: String = "admin"
     }
+
+    override fun toString(): String = "Job(id=$id, tasks=$tasks, owner=$owner)"
 }

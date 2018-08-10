@@ -24,48 +24,42 @@
 
 package com.atlarge.opendc.model.odc.platform.scheduler
 
+import com.atlarge.opendc.model.odc.OdcModel
 import com.atlarge.opendc.model.odc.platform.workload.Task
 import com.atlarge.opendc.model.odc.topology.machine.Machine
-import com.atlarge.opendc.simulator.Context
-import com.atlarge.opendc.simulator.Entity
+import com.atlarge.opendc.simulator.Process
+import com.atlarge.opendc.simulator.util.EventBus
 
 /**
- * A task scheduler that is coupled to an [Entity] in the topology of the cloud network.
+ * A cloud scheduler interface that schedules tasks across machines.
  *
+ * @param S The shape of the state of the scheduler.
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-interface Scheduler {
+interface Scheduler<S> : Process<S, OdcModel> {
     /**
      * The name of this scheduler.
      */
     val name: String
 
     /**
-     * (Re)schedule the tasks submitted to the scheduler over the specified set of machines.
-     *
-     * This method should be invoked at some interval to allow the scheduler to reschedule existing tasks and schedule
-     * new tasks.
+     * The event bus of the scheduler.
      */
-    suspend fun <S, M> Context<S, M>.schedule()
+    val bus: EventBus
 
     /**
-     * Submit a [Task] to this scheduler.
+     * This message is sent to a scheduler to indicate a scheduling cycle.
      *
-     * @param task The task to submit to the scheduler.
+     * @property tasks The new tasks that should be added to the queue.
      */
-    fun submit(task: Task)
+    data class Schedule(val tasks: Set<Task>)
 
     /**
-     * Register a [Machine] to this scheduler.
+     * This message is sent to a scheduler to introduce new resources and release old resources.
      *
-     * @param machine The machine to register.
+     * @property registered The new machines that have been registered to the datacenter.
+     * @property unregistered The machines that have been unregistered.
      */
-    fun register(machine: Machine)
-
-    /**
-     * Deregister a [Machine] from this scheduler.
-     *
-     * @param machine The machine to deregister.
-     */
-    fun deregister(machine: Machine)
+    data class Resources(val registered: Set<Machine>, val unregistered: Set<Machine>)
 }
+

@@ -62,7 +62,7 @@ internal class SmokeTest {
         val bootstrap: Bootstrap<Unit> = Bootstrap.create { ctx ->
             repeat(n) {
                 EchoProcess().also {
-                    ctx.register(it)
+                    ctx.start(it)
 
                     for (i in 1 until messages) {
                         ctx.schedule(i, it, delay = i.toLong())
@@ -87,7 +87,7 @@ internal class SmokeTest {
         val process = NullProcess
         val bootstrap: Bootstrap<Unit> = Bootstrap.create { ctx ->
             process.also {
-                ctx.register(it)
+                ctx.start(it)
                 ctx.schedule(0, it)
             }
         }
@@ -111,7 +111,7 @@ internal class SmokeTest {
         val process = CrashProcess
         val bootstrap: Bootstrap<Unit> = Bootstrap.create { ctx ->
             process.also {
-                ctx.register(it)
+                ctx.start(it)
                 ctx.schedule(0, it)
             }
         }
@@ -137,7 +137,7 @@ internal class SmokeTest {
         val value = 1
         val process = ModelProcess(value)
         val bootstrap: Bootstrap<Int> = Bootstrap.create { ctx ->
-            ctx.register(process)
+            ctx.start(process)
             value
         }
 

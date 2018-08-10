@@ -22,18 +22,42 @@
   ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   ~ SOFTWARE.
   -->
+
 <entity-mappings
     version="2.1"
     xmlns="http://xmlns.jcp.org/xml/ns/persistence/orm"
 >
-
     <package>com.atlarge.opendc.model.odc.integration.jpa.schema</package>
+
+    <entity class="Simulation" access="FIELD" name="simulations">
+        <convert converter="com.atlarge.opendc.model.odc.integration.jpa.converter.DateTimeConverter" attribute-name="createdAt" />
+        <convert converter="com.atlarge.opendc.model.odc.integration.jpa.converter.DateTimeConverter" attribute-name="lastEditedAt" />
+        <attributes>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
+
+            <basic name="name">
+                <column column-definition="text" />
+            </basic>
+
+            <basic name="createdAt">
+                <column name="datetime_created" column-definition="text" />
+            </basic>
+
+            <basic name="lastEditedAt">
+                <column name="datetime_last_edited" column-definition="text" />
+            </basic>
+        </attributes>
+    </entity>
 
     <entity class="Experiment" access="FIELD" name="experiments">
         <convert converter="com.atlarge.opendc.model.odc.integration.jpa.converter.SchedulerConverter"
                  attribute-name="scheduler"/>
         <attributes>
-            <id name="id"/>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
 
             <basic name="name">
                 <column column-definition="text"/>
@@ -54,27 +78,47 @@
 
             <many-to-one name="trace" target-entity="com.atlarge.opendc.model.odc.integration.jpa.schema.Trace">
                 <join-column name="trace_id"/>
+                <cascade>
+                    <cascade-refresh/>
+                </cascade>
             </many-to-one>
+
+            <one-to-one name="simulation" target-entity="com.atlarge.opendc.model.odc.integration.jpa.schema.Simulation">
+                <join-column name="simulation_id" />
+                <cascade>
+                    <cascade-refresh/>
+                </cascade>
+            </one-to-one>
 
             <one-to-one name="path" target-entity="com.atlarge.opendc.model.odc.integration.jpa.schema.Path">
                 <join-column name="path_id"/>
+                <cascade>
+                    <cascade-refresh/>
+                </cascade>
             </one-to-one>
         </attributes>
     </entity>
 
     <entity class="Path" access="FIELD" name="paths">
         <attributes>
-            <id name="id"/>
+            <id name="id">
+               <generated-value strategy="IDENTITY" />
+            </id>
 
             <one-to-many name="sections" target-entity="com.atlarge.opendc.model.odc.integration.jpa.schema.Section">
                 <join-column name="path_id"/>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
             </one-to-many>
         </attributes>
     </entity>
 
     <entity class="Section" access="FIELD" name="sections">
         <attributes>
-            <id name="id"/>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
 
             <basic name="startTime">
                 <column name="start_tick" column-definition="int(11)"/>
@@ -82,51 +126,72 @@
 
             <many-to-one name="datacenter">
                 <join-column name="datacenter_id"/>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
             </many-to-one>
         </attributes>
     </entity>
 
     <entity class="Trace" access="FIELD" name="traces" cacheable="false">
         <attributes>
-            <id name="id"/>
+            <id name="id" />
             <basic name="name">
                 <column column-definition="text"/>
             </basic>
             <one-to-many name="jobs" target-entity="com.atlarge.opendc.model.odc.integration.jpa.schema.Job">
+                <order-by>id</order-by>
                 <join-column name="trace_id"/>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
             </one-to-many>
         </attributes>
     </entity>
 
     <entity class="Job" access="FIELD" name="jobs" cacheable="false">
         <attributes>
-            <id name="id"/>
+            <id name="id" />
             <one-to-many name="tasks" target-entity="Task">
+                <order-by>id</order-by>
                 <join-column name="job_id"/>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
             </one-to-many>
             <transient name="owner"/>
         </attributes>
     </entity>
 
     <entity class="Task" access="FIELD" name="tasks" cacheable="false">
-        <convert converter="com.atlarge.opendc.model.odc.integration.jpa.converter.ParallelizableConverter"
-                 attribute-name="parallelizable"/>
         <attributes>
-            <id name="id"/>
+            <id name="id" />
             <basic name="flops">
-                <column name="total_flop_count" column-definition="int(11)"/>
+                <column name="total_flop_count"/>
             </basic>
             <basic name="startTime">
                 <column name="start_tick" column-definition="int(11)"/>
             </basic>
-            <basic name="parallelizable">
-                <column name="parallelizability" column-definition="text"/>
+            <basic name="cores">
+                <column name="core_count"/>
             </basic>
 
-            <one-to-one name="dependency" target-entity="Task">
-                <join-column name="task_dependency_id"/>
-            </one-to-one>
-            <transient name="dependencies"/>
+            <many-to-one name="job">
+                <join-column name="job_id"/>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
+            </many-to-one>
+            <many-to-many name="dependencies" target-entity="Task">
+                <join-table name="task_dependencies">
+                    <join-column name="second_task_id"/>
+                    <inverse-join-column name="first_task_id"/>
+                </join-table>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
+            </many-to-many>
+
             <transient name="state"/>
             <transient name="remaining"/>
             <transient name="finished"/>
@@ -135,10 +200,15 @@
 
     <entity class="Datacenter" access="FIELD" name="datacenters">
         <attributes>
-            <id name="id"/>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
 
             <one-to-many name="rooms" target-entity="Room">
                 <join-column name="datacenter_id"/>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
             </one-to-many>
             <transient name="scheduler"/>
             <transient name="interval"/>
@@ -148,7 +218,9 @@
 
     <entity class="Room" access="FIELD" name="rooms">
         <attributes>
-            <id name="id"/>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
             <basic name="name">
                 <column column-definition="text"/>
             </basic>
@@ -160,6 +232,9 @@
                     <join-column name="room_id"/>
                     <inverse-join-column name="object_id"/>
                 </join-table>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
             </one-to-many>
             <transient name="initialState"/>
         </attributes>
@@ -169,14 +244,18 @@
         <inheritance strategy="JOINED"/>
         <discriminator-column name="type"/>
         <attributes>
-            <id name="id"/>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
         </attributes>
     </entity>
 
     <entity class="Rack" access="FIELD" name="racks">
         <discriminator-value>RACK</discriminator-value>
         <attributes>
-            <id name="id"/>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
             <basic name="name">
                 <column column-definition="text"/>
             </basic>
@@ -187,6 +266,9 @@
 
             <one-to-many name="machines">
                 <join-column name="rack_id"/>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
             </one-to-many>
             <transient name="initialState"/>
         </attributes>
@@ -194,7 +276,9 @@
 
     <entity class="Machine" access="FIELD" name="machines">
         <attributes>
-            <id name="id"/>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
             <basic name="position"/>
 
             <many-to-many name="cpus">
@@ -202,6 +286,9 @@
                     <join-column name="machine_id"/>
                     <inverse-join-column name="cpu_id"/>
                 </join-table>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
             </many-to-many>
 
             <many-to-many name="gpus">
@@ -209,6 +296,9 @@
                     <join-column name="machine_id"/>
                     <inverse-join-column name="gpu_id"/>
                 </join-table>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
             </many-to-many>
             <transient name="initialState"/>
         </attributes>
@@ -216,7 +306,9 @@
 
     <entity class="Cpu" access="FIELD" name="cpus">
         <attributes>
-            <id name="id"/>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
             <basic name="manufacturer">
                 <column column-definition="text"/>
             </basic>
@@ -244,7 +336,9 @@
 
     <entity class="Gpu" access="FIELD" name="gpus">
         <attributes>
-            <id name="id"/>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
             <basic name="manufacturer">
                 <column column-definition="text"/>
             </basic>
@@ -273,7 +367,7 @@
     <entity class="MachineState" access="FIELD" name="machine_states">
         <attributes>
             <id name="id">
-                <generated-value strategy="IDENTITY"/>
+                <generated-value strategy="IDENTITY" />
             </id>
             <basic name="time">
                 <column name="tick" column-definition="int(11)"/>
@@ -288,9 +382,6 @@
                 <column name="load_fraction"/>
             </basic>
 
-            <many-to-one name="task">
-                <join-column name="task_id"/>
-            </many-to-one>
             <many-to-one name="machine">
                 <join-column name="machine_id"/>
             </many-to-one>
@@ -303,7 +394,7 @@
     <entity class="TaskState" access="FIELD" name="task_states">
         <attributes>
             <id name="id">
-                <generated-value strategy="IDENTITY"/>
+                <generated-value strategy="IDENTITY" />
             </id>
             <basic name="time">
                 <column name="tick" column-definition="int(11)"/>
@@ -320,6 +411,112 @@
             </many-to-one>
             <many-to-one name="experiment">
                 <join-column name="experiment_id"/>
+            </many-to-one>
+        </attributes>
+    </entity>
+
+    <!-- Time complexity experiments -->
+    <entity class="StageMeasurement" access="FIELD" name="stage_measurements">
+        <attributes>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
+            <basic name="stage">
+                <column name="stage"/>
+            </basic>
+            <basic name="time">
+                <column name="tick" column-definition="int(11)"/>
+            </basic>
+            <basic name="cpu">
+                <column name="cpu"/>
+            </basic>
+            <basic name="wall">
+                <column name="wall"/>
+            </basic>
+            <basic name="size">
+                <column name="size"/>
+            </basic>
+            <basic name="iterations">
+                <column name="iterations"/>
+            </basic>
+
+            <many-to-one name="experiment">
+                <join-column name="experiment_id"/>
+                <cascade>
+                    <cascade-refresh/>
+                </cascade>
+            </many-to-one>
+        </attributes>
+    </entity>
+
+    <entity class="JobMetrics" access="FIELD" name="job_metrics">
+        <attributes>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
+            <basic name="criticalPath">
+                <column name="critical_path" column-definition="int(11)"/>
+            </basic>
+            <basic name="criticalPathLength">
+                <column name="critical_path_length" column-definition="int(11)"/>
+            </basic>
+            <basic name="waiting">
+                <column name="waiting_time" column-definition="int(11)"/>
+            </basic>
+            <basic name="makespan">
+                <column name="makespan" column-definition="int(11)"/>
+            </basic>
+            <basic name="nsl">
+                <column name="nsl" column-definition="int(11)"/>
+            </basic>
+
+            <many-to-one name="experiment">
+                <join-column name="experiment_id"/>
+                <cascade>
+                    <cascade-refresh/>
+                </cascade>
+            </many-to-one>
+            <many-to-one name="job">
+                <join-column name="job_id"/>
+                <cascade>
+                    <cascade-refresh/>
+                </cascade>
+            </many-to-one>
+        </attributes>
+    </entity>
+
+    <entity class="TaskMetrics" access="FIELD" name="task_metrics">
+        <attributes>
+            <id name="id">
+                <generated-value strategy="IDENTITY" />
+            </id>
+            <basic name="waiting">
+                <column name="waiting" column-definition="int(11)"/>
+            </basic>
+            <basic name="execution">
+                <column name="execution" column-definition="int(11)"/>
+            </basic>
+            <basic name="turnaround">
+                <column name="turnaround" column-definition="int(11)"/>
+            </basic>
+
+            <many-to-one name="experiment">
+                <join-column name="experiment_id"/>
+                <cascade>
+                    <cascade-refresh/>
+                </cascade>
+            </many-to-one>
+            <many-to-one name="task">
+                <join-column name="task_id"/>
+                <cascade>
+                    <cascade-refresh/>
+                </cascade>
+            </many-to-one>
+            <many-to-one name="job">
+                <join-column name="job_id"/>
+                <cascade>
+                    <cascade-refresh/>
+                </cascade>
             </many-to-one>
         </attributes>
     </entity>

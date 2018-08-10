@@ -38,14 +38,14 @@ interface TopologyListener {
      *
      * @param node The entity that has been added to the [Topology].
      */
-    fun Topology.onNodeAdded(node: Entity<*, Topology>) {}
+    fun Topology.onNodeAdded(node: Entity<*>) {}
 
     /**
      * This method is invoked when an [Entity] is removed from the [Topology].
      *
      * @param node The entity that has been removed from the [Topology].
      */
-    fun Topology.onNodeRemoved(node: Entity<*, Topology>) {}
+    fun Topology.onNodeRemoved(node: Entity<*>) {}
 
     /**
      * This method is invoked when an [Edge] is added to the [Topology].

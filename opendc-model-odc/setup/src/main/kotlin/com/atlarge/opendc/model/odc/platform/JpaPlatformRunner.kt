@@ -25,8 +25,10 @@
 package com.atlarge.opendc.model.odc.platform
 
 import com.atlarge.opendc.omega.OmegaKernel
+import kotlinx.coroutines.experimental.asCoroutineDispatcher
+import kotlinx.coroutines.experimental.launch
 import mu.KotlinLogging
-import java.util.concurrent.Executors
+import java.util.concurrent.ForkJoinPool
 import javax.persistence.Persistence
 
 val logger = KotlinLogging.logger {}
@@ -43,20 +45,35 @@ fun main(args: Array<String>) {
     properties["javax.persistence.jdbc.url"] = env["PERSISTENCE_URL"] ?: ""
     properties["javax.persistence.jdbc.user"] = env["PERSISTENCE_USER"] ?: ""
     properties["javax.persistence.jdbc.password"] = env["PERSISTENCE_PASSWORD"] ?: ""
+
     val factory = Persistence.createEntityManagerFactory("opendc-simulator", properties)
 
-    val timeout = 30000L
-    val threads = 4
-    val executorService = Executors.newFixedThreadPool(threads)
-    val experiments = JpaExperimentManager(factory)
+    val collectMachineStates = env["COLLECT_MACHINE_STATES"]?.equals("off", ignoreCase = true)?.not() ?: false
+    val collectTaskStates = env["COLLECT_TASK_STATES"]?.equals("off", ignoreCase = true)?.not() ?: false
+    val collectStageMeasurements = env["COLLECT_STAGE_MEASUREMENTS"]?.equals("off", ignoreCase = true)?.not() ?: true
+    val collectTaskMetrics = env["COLLECT_TASK_METRICS"]?.equals("off", ignoreCase = true)?.not() ?: true
+    val collectJobMetrics = env["COLLECT_JOB_METRICS"]?.equals("off", ignoreCase = true)?.not() ?: true
+
+    val timeout = 500_000L
+    val experiments = JpaExperimentManager(
+        factory = factory,
+        collectMachineStates = collectMachineStates,
+        collectTaskStates = collectTaskStates,
+        collectStageMeasurements = collectStageMeasurements,
+        collectTaskMetrics = collectTaskMetrics,
+        collectJobMetrics = collectJobMetrics
+    )
     val kernel = OmegaKernel
+
+    val dispatcher = ForkJoinPool().asCoroutineDispatcher()
 
     logger.info { "Waiting for enqueued experiments..." }
     while (true) {
         experiments.poll()?.let { experiment ->
             logger.info { "Found experiment. Submitting for simulation now..." }
-            executorService.submit {
-                experiment.use { it.run(kernel, timeout) }
+            launch(dispatcher) {
+                experiment.run(kernel, timeout)
+                experiment.close()
             }
         }
 

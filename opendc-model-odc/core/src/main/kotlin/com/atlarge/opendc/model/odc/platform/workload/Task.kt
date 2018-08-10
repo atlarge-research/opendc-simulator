@@ -49,9 +49,9 @@ interface Task {
     val dependencies: Set<Task>
 
     /**
-     * A flag to indicate the task is parallelizable.
+     * The amount of cores required for running the task.
      */
-    val parallelizable: Boolean
+    val cores: Int
 
     /**
      * The remaining flops for this task.
@@ -67,7 +67,7 @@ interface Task {
      * A flag to indicate whether the task is ready to be started.
      */
     val ready: Boolean
-        get() = !dependencies.any { !it.finished }
+        get() = dependencies.all { it.finished }
 
     /**
      * A flag to indicate whether the task has finished.
@@ -90,3 +90,4 @@ interface Task {
      */
     fun consume(time: Instant, flops: Long)
 }
+

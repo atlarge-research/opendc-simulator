@@ -28,7 +28,6 @@ import com.atlarge.opendc.model.odc.platform.workload.Task
 import com.atlarge.opendc.model.topology.Topology
 import com.atlarge.opendc.model.topology.destinations
 import com.atlarge.opendc.simulator.Context
-import com.atlarge.opendc.simulator.Duration
 import com.atlarge.opendc.simulator.Process
 import mu.KotlinLogging
 
@@ -55,69 +54,115 @@ open class Machine : Process<Machine.State, Topology> {
      * The shape of the state of a [Machine] entity.
      *
      * @property status The status of the machine.
-     * @property task The task assign to the machine.
+     * @property tasks The task assigned to the machine.
      * @property memory The memory usage of the machine (defaults to 50mb for the kernel)
      * @property load The load on the machine (defaults to 0.0)
      * @property temperature The temperature of the machine (defaults to 23 degrees Celcius)
+     * @property available The available cores of the machine.
      */
     data class State(val status: Status,
-                     val task: Task? = null,
+                     val tasks: Set<Task> = emptySet(),
                      val memory: Int = 50,
                      val load: Double = 0.0,
-                     val temperature: Double = 23.0)
+                     val temperature: Double = 23.0,
+                     val available: Int)
+
+    /**
+     * This message is sent when a task is accepted by the machine.
+     *
+     * @property task The task that has been accepted by the machine.
+     */
+    data class Accept(val task: Task)
+
+    /**
+     * This message is sent when a task is declined by the machine.
+     *
+     * @property task The task that has been declined by the machine.
+     */
+    data class Decline(val task: Task)
+
+    /**
+     * Internal message to indicate the task is done.
+     *
+     * @property task The task that is done running.
+     */
+    data class Done(val task: Task)
 
     /**
      * The initial state of a [Machine] entity.
      */
-    override val initialState = State(Status.HALT)
+    override val initialState = State(Status.HALT, available = 0)
 
     /**
      * Run the simulation kernel for this entity.
      */
     override suspend fun Context<State, Topology>.run() = model.run {
-        state = State(Status.IDLE)
-
-        val interval: Duration = 10
         val cpus = outgoingEdges.destinations<Cpu>("cpu")
-        val speed = cpus.fold(0, { acc, cpu -> acc + cpu.clockRate * cpu.cores })
+        val cores = cpus.map { it.cores }.sum()
+        // Speed per core is an weighted average clock rate.
+        val speed = cpus.fold(0) { acc, cpu -> acc + cpu.clockRate * cpu.cores } / cores
+
+        state = State(Status.IDLE, available = cores)
 
         // Halt the machine if it has not processing units (see bug #4)
         if (cpus.isEmpty()) {
-            state = State(Status.HALT)
+            logger.warn { "[$time] Machine $id halted due to no cores" }
+            state = state.copy(status = Status.HALT)
             return
         }
 
-        var task: Task = receiveTask()
-        state = State(Status.RUNNING, task, load = 1.0, memory = state.memory + 50, temperature = 30.0)
-
         while (true) {
-            if (task.finished) {
-                logger.info { "$id: Task ${task.id} finished. Machine idle at $time" }
-                state = State(Status.IDLE)
-                task = receiveTask()
-            } else {
-                task.consume(time, speed * delta)
-            }
-
             // Check if we have received a new order in the meantime.
-            val msg = receive(interval)
-            if (msg is Task) {
-                task = msg
-                state = State(Status.RUNNING, task, load = 1.0, memory = state.memory + 50, temperature = 30.0)
-            }
-        }
-    }
-
-    /**
-     * Wait for a [Task] to be received by the [Context] and discard all other messages received in the meantime.
-     *
-     * @return The task that has been received.
-     */
-    private suspend fun Context<State, Topology>.receiveTask(): Task {
-        while (true) {
             val msg = receive()
-            if (msg is Task)
-                return msg
+            when (msg) {
+                is Task -> {
+                    // Check if the machine has enough cores available
+                    if (state.available >= msg.cores) {
+                        logger.debug { "[$time] Task ${msg.id} received on machine $id" }
+                        state = state.copy(
+                            status = Status.RUNNING,
+                            tasks = state.tasks.plus(msg),
+                            available = state.available - msg.cores,
+                            load = state.load + (msg.cores.toDouble() / cores),
+                            memory = state.memory + 50,
+                            temperature = state.temperature + 5.0
+                        )
+                        sender?.send(Accept(msg))
+
+                        // Inform the task that it is running
+                        msg.consume(time, 0)
+
+                        // Awake the machine when the task is done
+                        self.send(Done(msg), delay = msg.flops / msg.cores / speed)
+                    } else {
+                        logger.debug { "[$time] Task ${msg.id} not accepted on machine $id" }
+                        sender?.send(Decline(msg))
+                    }
+                }
+                is Done -> {
+                    val task = msg.task
+                    logger.debug { "[$time] Task ${task.id} finished on machine $id" }
+                    task.consume(time, task.flops)
+                    state = state.copy(
+                        tasks = state.tasks.minus(task),
+                        available = state.available + task.cores,
+                        load = state.load - (task.cores.toDouble() / cores),
+                        memory =  state.memory - 50,
+                        temperature = state.temperature - 5.0
+                    )
+                }
+            }
+
+            // Determine whether the machine is idle.
+            if (state.tasks.isEmpty()) {
+                state = state.copy(
+                    status = Status.IDLE,
+                    memory =  50,
+                    load = 0.0,
+                    temperature = 23.0
+                )
+            }
         }
     }
 }
+

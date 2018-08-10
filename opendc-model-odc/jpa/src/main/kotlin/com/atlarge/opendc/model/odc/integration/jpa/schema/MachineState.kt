@@ -25,20 +25,14 @@
 package com.atlarge.opendc.model.odc.integration.jpa.schema
 
 import com.atlarge.opendc.simulator.Instant
-import com.atlarge.opendc.simulator.instrumentation.interpolate
 import com.atlarge.opendc.simulator.instrumentation.lerp
-import kotlinx.coroutines.experimental.Unconfined
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consume
 import javax.persistence.Entity
-import kotlin.coroutines.experimental.CoroutineContext
 
 /**
  * The state of a [Machine].
  *
  * @property id The unique identifier of the state.
  * @property machine The machine of the state.
- * @property task The task the machine has been assigned.
  * @property experiment The experiment the machine is running in.
  * @property time The current moment in time.
  * @property temperature The temperature of the machine.
@@ -48,33 +42,27 @@ import kotlin.coroutines.experimental.CoroutineContext
  */
 @Entity
 data class MachineState(
-    val id: Int,
+    val id: Int?,
     val machine: Machine,
-    val task: Task?,
     val experiment: Experiment,
     val time: Instant,
     val temperature: Double,
     val memoryUsage: Int,
     val load: Double
-)
-
-/**
- * Linearly interpolate [n] amount of elements between every two occurrences of task progress measurements represented
- * as [MachineState] instances passing through the channel.
- *
- * The operation is _intermediate_ and _stateless_.
- * This function [consumes][consume] all elements of the original [ReceiveChannel].
- *
- * @param context The context of the coroutine.
- * @param n The amount of elements to interpolate between the actual elements in the channel.
- */
-fun ReceiveChannel<MachineState>.interpolate(n: Int, context: CoroutineContext = Unconfined): ReceiveChannel<MachineState> =
-    interpolate(n, context) { f, a, b ->
-        a.copy(
-            id = 0,
-            time = lerp(a.time, b.time, f),
-            temperature = lerp(a.temperature, b.temperature, f),
-            memoryUsage = lerp(a.memoryUsage, b.memoryUsage, f),
-            load = lerp(a.load, b.load, f)
-        )
+) {
+    companion object {
+        /**
+         * A linear interpolator for [MachineState] instances.
+         */
+        val Interpolator: (Double, MachineState, MachineState) -> MachineState = { f, a, b ->
+            a.copy(
+                id = 0,
+                time = lerp(a.time, b.time, f),
+                temperature = lerp(a.temperature, b.temperature, f),
+                memoryUsage = lerp(a.memoryUsage, b.memoryUsage, f),
+                load = lerp(a.load, b.load, f)
+            )
+        }
     }
+}
+

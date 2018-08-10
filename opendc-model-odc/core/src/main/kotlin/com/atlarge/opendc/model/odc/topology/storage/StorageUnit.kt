@@ -24,7 +24,6 @@
 
 package com.atlarge.opendc.model.odc.topology.storage
 
-import com.atlarge.opendc.model.topology.Topology
 import com.atlarge.opendc.simulator.Entity
 
 /**
@@ -32,4 +31,4 @@ import com.atlarge.opendc.simulator.Entity
  *
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-interface StorageUnit : Entity<Unit, Topology>
+interface StorageUnit : Entity<Unit>

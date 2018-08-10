@@ -24,11 +24,15 @@
 
 package com.atlarge.opendc.model.odc.integration.jpa
 
+import kotlinx.coroutines.experimental.Unconfined
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consume
+import kotlinx.coroutines.experimental.channels.produce
 import javax.persistence.EntityManager
 import javax.persistence.EntityManagerFactory
 import javax.persistence.RollbackException
+import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.experimental.coroutineContext
 
 /**
  * Run the given block in a transaction, committing on return of the block.
@@ -50,27 +54,21 @@ inline fun EntityManager.transaction(block: () -> Unit) {
 suspend fun <E> ReceiveChannel<E>.persist(factory: EntityManagerFactory, batchSize: Int = 1000) {
     val writer = factory.createEntityManager()
 
-    this.consume {
+    this
+        .buffer(coroutineContext, batchSize)
+        .consume {
         val transaction = writer.transaction
-        var counter = 0
         try {
-            transaction.begin()
 
-            for (element in this) {
-                // Commit batch every batch size
-                if (counter > 0 && counter % batchSize == 0) {
-                    writer.flush()
-                    writer.clear()
+            for (buffer in this) {
+                transaction.begin()
+                buffer.forEach { writer.persist(it) }
 
-                    transaction.commit()
-                    transaction.begin()
-                }
+                writer.flush()
+                writer.clear()
 
-                writer.persist(element)
-                counter++
+                transaction.commit()
             }
-
-            transaction.commit()
         } catch(e: RollbackException) {
             // Rollback transaction if still active
             if (transaction.isActive) {
@@ -81,5 +79,28 @@ suspend fun <E> ReceiveChannel<E>.persist(factory: EntityManagerFactory, batchSi
         } finally {
             writer.close()
         }
+    }
+}
+
+/**
+ * Buffer a given amount of elements before emitting them as a list.
+ *
+ * @param size The size of the buffer.
+ * @return A [ReceiveChannel] that emits lists of type [E] that have been buffered.
+ */
+private fun <E> ReceiveChannel<E>.buffer(context: CoroutineContext = Unconfined, size: Int = 1000): ReceiveChannel<List<E>> = produce(context) {
+    consume {
+        var buffer: MutableList<E> = ArrayList(size)
+
+        for (element in this) {
+            if (buffer.size == size) {
+                send(buffer)
+                buffer = ArrayList(size)
+            }
+
+            buffer.add(element)
+        }
+
+        send(buffer)
     }
 }

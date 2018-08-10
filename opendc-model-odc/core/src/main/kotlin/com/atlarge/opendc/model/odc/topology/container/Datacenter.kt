@@ -48,7 +48,7 @@ interface Datacenter : Process<Unit, Topology> {
     /**
      * The task scheduler the datacenter uses.
      */
-    val scheduler: Scheduler
+    val scheduler: Scheduler<*>
 
     /**
      * The interval at which task will be (re)scheduled.
@@ -77,12 +77,19 @@ interface Datacenter : Process<Unit, Topology> {
         // Find all machines in the datacenter
         val machines = outgoingEdges.destinations<Room>("room").asSequence()
             .flatMap { it.outgoingEdges.destinations<Rack>("rack").asSequence() }
-            .flatMap { it.outgoingEdges.destinations<Machine>("machine").asSequence() }.toList()
+            .flatMap { it.outgoingEdges.destinations<Machine>("machine").asSequence() }
+            .toList()
 
         logger.info { "Initialising datacenter with ${machines.size} machines" }
 
+        // Wait for all resources to initialise
+        hold(1, queue)
+
         // Register all machines to the scheduler
-        machines.forEach(scheduler::register)
+        scheduler.send(Scheduler.Resources(LinkedHashSet(machines), emptySet()))
+
+        // The tasks that have been received
+        var tasks = LinkedHashSet<Task>()
 
         while (true) {
             // Context all messages in the queue
@@ -90,15 +97,19 @@ interface Datacenter : Process<Unit, Topology> {
                 val msg = queue.poll()
                 if (msg is Task) {
                     if (msg.state != TaskState.Underway) {
-                        logger.warn { "Received invalid task $msg"}
+                        logger.warn { "Received invalid task $msg" }
                         continue
                     }
                     msg.arrive(time)
-                    scheduler.submit(msg)
+                    tasks.add(msg)
                 }
             }
             // (Re)schedule the tasks
-            scheduler.run { schedule() }
+            scheduler.send(Scheduler.Schedule(tasks))
+
+            // Clean up task queue
+            if (tasks.isNotEmpty())
+                tasks = LinkedHashSet()
 
             // Sleep a time quantum
             hold(interval, queue)

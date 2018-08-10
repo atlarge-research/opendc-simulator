@@ -34,15 +34,17 @@ import javax.persistence.Entity
  * @property id The identifier of the experiment.
  * @property name The name of the experiment.
  * @property scheduler The scheduler used in the experiment.
+ * @property simulation The [Simulation] object for this experiment.
  * @property trace The trace used for the simulation.
  * @property path The path of the experiment.
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
 @Entity
 data class Experiment(
-    val id: Int,
+    val id: Int?,
     val name: String,
-    val scheduler: Scheduler,
+    val scheduler: Scheduler<*>,
+    val simulation: Simulation,
     val trace: Trace,
     val path: Path
 ) {

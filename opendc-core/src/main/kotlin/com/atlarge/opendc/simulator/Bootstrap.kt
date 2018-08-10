@@ -24,20 +24,22 @@ interface Bootstrap<M> {
      */
     interface Context<out M> {
         /**
-         * Register the given entity to the simulation kernel.
+         * Asynchronously start the given [Process] in simulation. The process will be scheduled by the kernel as soon
+         * as possible. If the process is already running, the method returns `true`.
          *
-         * @param entity The entity to register.
+         * @param process The process to start.
          * @return `true` if the entity had not yet been registered, `false` otherwise.
          */
-        fun register(entity: Entity<*, M>): Boolean
+        fun start(process: Process<*, M>): Boolean
 
         /**
-         * Deregister the given entity from the simulation kernel.
+         * Stop the [Process] associated with the given [Entity] from further participating in the simulation.
          *
-         * @param entity The entity to deregister.
-         * @return `true` if the entity had not yet been unregistered, `false` otherwise.
+         * @param entity The entity to stop the process of.
+         * @return `true` if the process of the entity was still running, `false` otherwise (there is no process
+         * associated or it has already terminated).
          */
-        fun deregister(entity: Entity<*, M>): Boolean
+        fun stop(entity: Entity<*>): Boolean
 
         /**
          * Schedule a message to be received by the given [Entity].
@@ -47,7 +49,7 @@ interface Bootstrap<M> {
          * @param sender The sender of the message.
          * @param delay The amount of time to wait before processing the message.
          */
-        fun schedule(message: Any, destination: Entity<*, *>, sender: Entity<*, *>? = null, delay: Duration = 0)
+        fun schedule(message: Any, destination: Entity<*>, sender: Entity<*>? = null, delay: Duration = 0)
     }
 
     companion object {

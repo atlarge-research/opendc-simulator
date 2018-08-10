@@ -36,9 +36,19 @@ import com.atlarge.opendc.model.odc.integration.jpa.schema.Experiment as Interna
  *
  * @property factory The JPA entity manager factory to create [EntityManager]s to retrieve entities from the database
  * 					 from.
+ * @property collectMachineStates Flag to indicate machine states will be collected.
+ * @property collectTaskStates Flag to indicate task states will be collected.
+ * @property collectStageMeasurements Flag to indicate stage measurements will be collected.
+ * @property collectTaskMetrics Flag to indicate task metrics will be collected.
+ * @property collectJobMetrics Flag to indicate job metrics will be collected.
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-class JpaExperimentManager(private val factory: EntityManagerFactory) : AutoCloseable {
+class JpaExperimentManager(private val factory: EntityManagerFactory,
+                           private val collectMachineStates: Boolean = true,
+                           private val collectTaskStates: Boolean = true,
+                           private val collectStageMeasurements: Boolean = false,
+                           private val collectTaskMetrics: Boolean = false,
+                           private val collectJobMetrics: Boolean = false) : AutoCloseable {
     /**
      * The entity manager for this experiment.
      */
@@ -76,7 +86,17 @@ class JpaExperimentManager(private val factory: EntityManagerFactory) : AutoClos
                 experiment = results.first()
                 experiment!!.state = ExperimentState.CLAIMED
             }
-            result = experiment?.let { JpaExperiment(manager, it) }
+            result = experiment?.let {
+                JpaExperiment(
+                    manager,
+                    it,
+                    collectMachineStates,
+                    collectTaskStates,
+                    collectStageMeasurements,
+                    collectTaskMetrics,
+                    collectJobMetrics
+                )
+            }
         }
         manager = factory.createEntityManager()
         return result

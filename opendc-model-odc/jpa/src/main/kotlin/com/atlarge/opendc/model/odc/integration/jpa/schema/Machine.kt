@@ -37,9 +37,11 @@ import javax.persistence.Entity
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
 @Entity
-data class Machine(
-    val id: Int,
+class Machine(
+    val id: Int?,
     val position: Int,
     val cpus: Set<Cpu>,
     val gpus: Set<Gpu>
-) : Machine()
+) : Machine() {
+    override fun toString(): String = "Machine(id=$id, position=$position, cpus=$cpus, gpus=$gpus)"
+}

@@ -24,7 +24,6 @@
 
 package com.atlarge.opendc.model.odc.topology.power
 
-import com.atlarge.opendc.model.topology.Topology
 import com.atlarge.opendc.simulator.Entity
 
 /**
@@ -32,4 +31,4 @@ import com.atlarge.opendc.simulator.Entity
  *
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-interface PowerUnit : Entity<Unit, Topology>
+interface PowerUnit : Entity<Unit>
