@@ -44,7 +44,7 @@ class Task(
     override val id: Int,
     override val flops: Long,
     override val cores: Int,
-    override val dependencies: Set<Task>,
+    override val dependencies: MutableSet<Task>,
     val startTime: Instant
 ) : Task {
     /**
@@ -62,7 +62,7 @@ class Task(
     /**
      * The state of the task.
      */
-    override lateinit var state: TaskState
+    override var state: TaskState = TaskState.Underway
         private set
 
 

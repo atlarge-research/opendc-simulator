@@ -129,7 +129,7 @@ class JpaExperiment(private val manager: EntityManager,
                 .filter { it is StageMeasurement }
                 .map {
                     it as StageMeasurement
-                    InternalStageMeasurement(0, experiment, it.stage, it.time, it.cpu, it.wall, it.size, it.iterations)
+                    InternalStageMeasurement(null, experiment, it.stage, it.time, it.cpu, it.wall, it.size, it.iterations)
                 }
         } else {
             emptyList<InternalStageMeasurement>().asReceiveChannel()
@@ -149,7 +149,7 @@ class JpaExperiment(private val manager: EntityManager,
                 while (true) {
                     send(
                         MachineState(
-                            0,
+                            null,
                             machine as com.atlarge.opendc.model.odc.integration.jpa.schema.Machine,
                             experiment,
                             time,
@@ -178,7 +178,7 @@ class JpaExperiment(private val manager: EntityManager,
                 while (task.state !is TaskState.Running) {
                     send(
                         InternalTaskState(
-                            0,
+                            null,
                             task as InternalTask,
                             experiment,
                             time,
@@ -192,7 +192,7 @@ class JpaExperiment(private val manager: EntityManager,
 
                 send(
                     InternalTaskState(
-                        0,
+                        null,
                         task as InternalTask,
                         experiment,
                         time,
@@ -207,7 +207,7 @@ class JpaExperiment(private val manager: EntityManager,
 
                 send(
                     InternalTaskState(
-                        0,
+                        null,
                         task,
                         experiment,
                         time,
@@ -300,7 +300,7 @@ class JpaExperiment(private val manager: EntityManager,
                     job.tasks.map { task ->
                         val finished = task.state as TaskState.Finished
                         TaskMetrics(
-                            0,
+                            null,
                             experiment,
                             task as InternalTask,
                             job as InternalJob,
@@ -348,7 +348,7 @@ class JpaExperiment(private val manager: EntityManager,
                     Pair(finish - submit, start - submit)
                 }
 
-                JobMetrics(0, experiment, job as InternalJob, cpl, count, waiting, makespan, makespan / cpl)
+                JobMetrics(null, experiment, job as InternalJob, cpl, count, waiting, makespan, makespan / cpl)
             }.asReceiveChannel()
         } else {
             emptyList<JobMetrics>().asReceiveChannel()

@@ -32,7 +32,7 @@ import javax.persistence.Entity
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
 @Entity
-data class JobMetrics(val id: Int,
+data class JobMetrics(val id: Int?,
                       val experiment: Experiment,
                       val job: Job,
                       val criticalPath: Long,

@@ -42,7 +42,7 @@ import javax.persistence.Entity
  */
 @Entity
 data class Cpu(
-    val id: Int,
+    val id: Int?,
     val manufacturer: String,
     val family: String,
     val generation: String,

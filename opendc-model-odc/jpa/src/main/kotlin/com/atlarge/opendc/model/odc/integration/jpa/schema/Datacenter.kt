@@ -38,7 +38,7 @@ import javax.persistence.Entity
  */
 @Entity
 data class Datacenter(
-    val id: Int,
+    val id: Int?,
     val rooms: List<Room>
 ) : Datacenter {
     /**

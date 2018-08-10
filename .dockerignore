@@ -1,0 +1,4 @@
+# Files to ignore when building Docker image from this context
+.git
+data
+opendc-model-odc/jpa/src/main/python

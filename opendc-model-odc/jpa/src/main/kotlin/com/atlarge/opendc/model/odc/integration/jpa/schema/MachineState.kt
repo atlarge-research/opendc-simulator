@@ -25,13 +25,8 @@
 package com.atlarge.opendc.model.odc.integration.jpa.schema
 
 import com.atlarge.opendc.simulator.Instant
-import com.atlarge.opendc.simulator.instrumentation.interpolate
 import com.atlarge.opendc.simulator.instrumentation.lerp
-import kotlinx.coroutines.experimental.Unconfined
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.consume
 import javax.persistence.Entity
-import kotlin.coroutines.experimental.CoroutineContext
 
 /**
  * The state of a [Machine].
@@ -47,7 +42,7 @@ import kotlin.coroutines.experimental.CoroutineContext
  */
 @Entity
 data class MachineState(
-    val id: Int,
+    val id: Int?,
     val machine: Machine,
     val experiment: Experiment,
     val time: Instant,

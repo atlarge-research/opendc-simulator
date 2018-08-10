@@ -41,7 +41,7 @@ import javax.persistence.Entity
  */
 @Entity
 data class TaskState(
-    val id: Int,
+    val id: Int?,
     val task: Task,
     val experiment: Experiment,
     val time: Instant,

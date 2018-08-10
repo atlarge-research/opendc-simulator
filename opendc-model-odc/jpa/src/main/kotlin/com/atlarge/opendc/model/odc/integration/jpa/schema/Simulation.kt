@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2017 atlarge-research
+ * Copyright (c) 2018 atlarge-research
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,29 +24,19 @@
 
 package com.atlarge.opendc.model.odc.integration.jpa.schema
 
-import com.atlarge.opendc.model.odc.topology.container.Rack
+import java.time.LocalDateTime
 import javax.persistence.Entity
 
 /**
- * A rack entity in a room in the persistent schema.
+ * A [Simulation] has several [Path]s, which define the topology of the datacenter at different times. A [Simulation]
+ * also has several [Experiment]s, which can be run on a combination of [Path]s, [Scheduler]s and [Trace]s.
+ * [Simulation]s also serve as the scope to which different [User]s can be authorized.
  *
- * @property id The unique identifier of the rack.
- * @property name The name of the rack.
- * @property capacity The capacity of the rack in terms of units.
- * @property powerCapacity The power capacity of the rack in Watt.
- * @property machines The machines in the rack.
- * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
+ *
+ * @property id The unique identifier of this simulation.
+ * @property name the name of the simulation.
+ * @property createdAt The date at which the simulation was created.
+ * @property lastEditedAt The date at which the simulation was lasted edited.
  */
 @Entity
-class Rack(
-    id: Int?,
-    val name: String,
-    val capacity: Int,
-    val powerCapacity: Int,
-    val machines: List<Machine>
-) : RoomObject(id), Rack {
-    /**
-     * The initial state of the entity.
-     */
-    override val initialState = Unit
-}
+data class Simulation(val id: Int?, val name: String, val createdAt: LocalDateTime, val lastEditedAt: LocalDateTime)

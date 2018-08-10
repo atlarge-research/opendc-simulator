@@ -38,7 +38,7 @@ import javax.persistence.Entity
  */
 @Entity
 data class Trace(
-    val id: Int,
+    val id: Int?,
     val name: String,
     override val jobs: List<Job>
 ) : Trace

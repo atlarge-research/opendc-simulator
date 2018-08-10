@@ -39,7 +39,7 @@ import javax.persistence.Entity
  * @property iterations The amount of iterations.
  */
 @Entity
-data class StageMeasurement(val id: Int,
+data class StageMeasurement(val id: Int?,
                             val experiment: Experiment,
                             val stage: Int,
                             val time: Instant,

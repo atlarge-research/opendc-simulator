@@ -33,4 +33,4 @@ import javax.persistence.Entity
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
 @Entity
-abstract class RoomObject(val id: Int)
+abstract class RoomObject(val id: Int?)

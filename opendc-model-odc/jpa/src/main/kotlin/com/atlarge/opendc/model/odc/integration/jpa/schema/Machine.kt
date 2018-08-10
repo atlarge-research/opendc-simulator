@@ -38,7 +38,7 @@ import javax.persistence.Entity
  */
 @Entity
 class Machine(
-    val id: Int,
+    val id: Int?,
     val position: Int,
     val cpus: Set<Cpu>,
     val gpus: Set<Gpu>

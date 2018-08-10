@@ -38,7 +38,7 @@ import javax.persistence.Entity
 @Entity
 class Job(
     override val id: Int,
-    override val tasks: Set<Task>
+    override val tasks: MutableSet<Task>
 ) : Job {
     /**
      * The owner of the job, which is a singleton, since the database has no
