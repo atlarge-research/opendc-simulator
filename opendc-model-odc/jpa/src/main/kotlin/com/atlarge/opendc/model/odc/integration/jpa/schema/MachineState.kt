@@ -56,7 +56,7 @@ data class MachineState(
          */
         val Interpolator: (Double, MachineState, MachineState) -> MachineState = { f, a, b ->
             a.copy(
-                id = 0,
+                id = null,
                 time = lerp(a.time, b.time, f),
                 temperature = lerp(a.temperature, b.temperature, f),
                 memoryUsage = lerp(a.memoryUsage, b.memoryUsage, f),

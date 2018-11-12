@@ -54,7 +54,7 @@ data class TaskState(
          */
         val Interpolator: (Double, TaskState, TaskState) -> TaskState = { f, a, b ->
             a.copy(
-                id = 0,
+                id = null,
                 time = lerp(a.time, b.time, f),
                 remaining = lerp(a.remaining, b.remaining, f)
             )
