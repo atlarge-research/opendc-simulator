@@ -36,7 +36,7 @@ allprojects {
         kotlinx_coroutines_version = '0.23.4'
         junit_jupiter_version = '5.2.0'
         junit_platform_version = '1.2.0'
-        jacoco_version = '0.8.2-SNAPSHOT'
+        jacoco_version = '0.8.2'
     }
 }
 
