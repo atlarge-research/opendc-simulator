@@ -61,9 +61,11 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
      * Convert a name of a scheduler into a [StageScheduler] based on the pattern `SORTING_POLICY-SELECTION_POLICY`.
      */
     private fun convert(name: String): StageScheduler? {
-        val parts = name.split("-")
+        var parts = name.split("-")
         if (parts.size < 2) {
-            return null
+            // Some policies only use a single name, in that case we'll use the
+            // entire name for both the sorting and selection policy.
+            parts = listOf(parts[0], parts[0])
         }
 
         val (sorting, selection) = parts
