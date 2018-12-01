@@ -74,7 +74,7 @@ class SgwfParser {
 
                     val flops: Long = 4000 * runtime * cores
 
-                    val task = InternalTask(taskId, flops, cores, mutableSetOf(), submitTime)
+                    val task = InternalTask(taskId, flops, cores, mutableSetOf(), mutableSetOf(), submitTime)
                     val job = jobs.getOrPut(jobId) { InternalJob(jobId, mutableSetOf()) }
 
                     job.tasks.add(task)
@@ -87,6 +87,9 @@ class SgwfParser {
             task.dependencies.addAll(dependencies.map { taskId ->
                 tasks[taskId] ?: throw IllegalArgumentException("Dependency task with id $taskId not found")
             })
+            dependencies.forEach {
+                tasks[it]!!.dependents.add(task)
+            }
         }
 
         return InternalTrace(0, "SGWF Trace", jobs.values.toList())

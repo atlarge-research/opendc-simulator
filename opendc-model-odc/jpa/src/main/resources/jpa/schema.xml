@@ -191,6 +191,16 @@
                     <cascade-persist/>
                 </cascade>
             </many-to-many>
+            <!-- TODO: this can be improved by reusing the `task_dependencies` table -->
+            <many-to-many name="dependents" target-entity="Task">
+                <join-table name="task_dependents">
+                    <join-column name="second_task_id"/>
+                    <inverse-join-column name="first_task_id"/>
+                </join-table>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
+            </many-to-many>
 
             <transient name="state"/>
             <transient name="remaining"/>

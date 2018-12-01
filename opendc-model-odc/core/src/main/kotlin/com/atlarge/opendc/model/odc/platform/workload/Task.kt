@@ -49,6 +49,11 @@ interface Task {
     val dependencies: Set<Task>
 
     /**
+     * Set of tasks that are dependent on this task.
+     */
+    val dependents: Set<Task>
+
+    /**
      * The amount of cores required for running the task.
      */
     val cores: Int
