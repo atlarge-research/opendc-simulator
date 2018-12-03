@@ -310,6 +310,9 @@
                     <cascade-persist/>
                 </cascade>
             </many-to-many>
+
+            <basic name="ethernet_speed"/>
+
             <transient name="initialState"/>
         </attributes>
     </entity>

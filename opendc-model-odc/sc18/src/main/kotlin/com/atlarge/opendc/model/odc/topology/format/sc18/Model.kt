@@ -60,8 +60,10 @@ sealed class RoomObject(val type: String) {
 }
 
 /**
- * A machine in the setup that consists of the specified CPU's represented as integer identifiers.
+ * A machine in the setup that consists of the specified CPU's represented as
+ * integer identifiers and ethernet speed.
  *
  * @property cpus The CPUs in the machine represented as integer identifiers.
+ * @property ethernet_speed The ethernet speed in mbps (megabits per second, 1 Gb/s is 10,000 mbps).
  */
-data class Machine(val cpus: List<Int>)
+data class Machine(val cpus: List<Int>, val ethernet_speed: Double)
