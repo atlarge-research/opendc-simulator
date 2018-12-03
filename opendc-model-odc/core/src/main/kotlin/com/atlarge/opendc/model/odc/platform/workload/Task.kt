@@ -64,6 +64,16 @@ interface Task {
     val remaining: Long
 
     /**
+     * The input size, i.e. required input data.
+     */
+    val input_size: Long
+
+    /**
+     * The output size.
+     */
+    val output_size: Long
+
+    /**
      * The state of the task.
      */
     val state: TaskState

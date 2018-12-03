@@ -48,6 +48,8 @@ class Task(
     override val cores: Int,
     override val dependencies: MutableSet<Task>,
     override val dependents: MutableSet<Task>,
+    override val input_size: Long,
+    override val output_size: Long,
     val startTime: Instant
 ) : Task {
     /**

@@ -202,6 +202,9 @@
                 </cascade>
             </many-to-many>
 
+            <basic name="input_size"/>
+            <basic name="output_size"/>
+
             <transient name="state"/>
             <transient name="remaining"/>
             <transient name="finished"/>
