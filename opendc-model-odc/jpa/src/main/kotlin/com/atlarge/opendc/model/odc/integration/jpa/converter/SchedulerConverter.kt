@@ -29,10 +29,12 @@ import com.atlarge.opendc.model.odc.platform.scheduler.StageScheduler
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.BestFitMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.FirstFitMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.FunctionalMachineDynamicFilteringPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.HeftMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.RandomMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.WorstFitMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.FifoSortingPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.FunctionalTaskEligibilityFilteringPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.HeftSortingPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.RandomSortingPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.SrtfSortingPolicy
 import javax.persistence.AttributeConverter
@@ -73,6 +75,7 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
             "FIFO" -> FifoSortingPolicy()
             "SRTF" -> SrtfSortingPolicy()
             "RANDOM" -> RandomSortingPolicy()
+            "HEFT" -> HeftSortingPolicy()
             else -> return null
         }
 
@@ -81,6 +84,7 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
             "BESTFIT" -> BestFitMachineSelectionPolicy()
             "WORSTFIT" -> WorstFitMachineSelectionPolicy()
             "RANDOM" -> RandomMachineSelectionPolicy()
+            "HEFT" -> HeftMachineSelectionPolicy()
             else -> return null
         }
 
