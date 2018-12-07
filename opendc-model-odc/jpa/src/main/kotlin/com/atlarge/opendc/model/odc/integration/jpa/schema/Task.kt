@@ -34,6 +34,7 @@ import javax.persistence.PostLoad
  * A [Task] backed by the JPA API and an underlying database connection.
  *
  * @property id The unique identifier of the job.
+ * @property priority The priority of the job.
  * @property flops The total amount of flops for the task.
  * @property cores The amount of cores required for running the task.
  * @property dependencies The dependencies of the task.
@@ -46,6 +47,7 @@ import javax.persistence.PostLoad
 @Entity
 class Task(
     override val id: Int,
+    override val priority: Int,
     override val flops: Long,
     override val cores: Int,
     override val dependencies: MutableSet<Task>,

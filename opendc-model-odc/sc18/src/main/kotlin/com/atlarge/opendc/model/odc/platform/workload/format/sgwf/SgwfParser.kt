@@ -65,6 +65,7 @@ class SgwfParser {
 
                     val jobId = values[0].trim().toInt()
                     val taskId = values[1].trim().toInt()
+                    val priority: Int = 0
                     val submitTime = values[2].trim().toLong()
                     val runtime = values[3].trim().toLong()
                     val cores = values[4].trim().toInt()
@@ -76,7 +77,7 @@ class SgwfParser {
 
                     val flops: Long = 4000 * runtime * cores
 
-                    val task = InternalTask(taskId, flops, cores, mutableSetOf(), mutableSetOf(),
+                    val task = InternalTask(taskId, priority, flops, cores, mutableSetOf(), mutableSetOf(),
                         inputSize, outputSize, submitTime)
                     val job = jobs.getOrPut(jobId) { InternalJob(jobId, mutableSetOf()) }
 
