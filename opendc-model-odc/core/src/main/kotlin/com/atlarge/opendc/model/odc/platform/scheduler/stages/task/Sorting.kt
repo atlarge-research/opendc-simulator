@@ -105,3 +105,36 @@ class HeftSortingPolicy : TaskSortingPolicy {
             }
         }
 }
+
+/**
+ * Priority Impact Scheduling Algorithm (PISA) scheduling.
+ *
+ * Hu Wu et al. A Priority Constrained Scheduling Strategy of Multiple Workflows
+ * for Cloud Computing, 2012.
+ */
+class PisaSortingPolicy(val MaxWaitCount: Int = 100, private val waitCounts: MutableMap<Task, Int> = mutableMapOf()) : TaskSortingPolicy {
+    // NOTE: The paper mentions `MaxWaitValue` (line 19 of figure 3) but never
+    // mentions a suitable value for this variable, not in the algorithm or in
+    // the experiments section.
+    //
+    // Because of this a, somewhat arbitrary, value of 100 is chosen. This means
+    // that a low(er) priority task will have to let at least 100 other high(er)
+    // priority tasks run before it can be run.
+
+    override suspend fun sort(tasks: List<Task>): List<Task> =
+        tasks.map { task ->
+            var count = waitCounts.getOrPut(task, { 0 })
+            count += 1
+            waitCounts.put(task, count)
+
+            // If the task is waiting to long it will get priority over the
+            // other tasks.
+            if (count > MaxWaitCount) {
+                Pair(task, Int.MAX_VALUE)
+            } else {
+                Pair(task, task.priority)
+            }
+        }
+        .sortedByDescending { (_, priority) -> priority }
+        .map { (task, _) -> task }
+}
