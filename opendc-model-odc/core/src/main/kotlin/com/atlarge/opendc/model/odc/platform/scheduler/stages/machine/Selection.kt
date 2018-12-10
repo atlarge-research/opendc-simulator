@@ -121,6 +121,32 @@ class HeftMachineSelectionPolicy : MachineSelectionPolicy {
 }
 
 /**
+ * Critical-Path-on-a-Processor (CPOP) scheduling as described by H. Topcuoglu et al. in
+ * "Task Scheduling Algorithms for Heterogeneous Processors".
+ */
+class CpopMachineSelectionPolicy : MachineSelectionPolicy {
+    override suspend fun select(machines: List<Machine>, task: Task): Machine? =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                // NOTE: higher is better.
+                fun communication(task: Task, machine: Machine): Double {
+                    val ethernet_speeds = machine.outgoingEdges.destinations<Double>("ethernet_speed")
+                    val ethernet_speed = ethernet_speeds.sum()
+                    return ethernet_speed.toDouble() / task.inputSize
+                }
+                fun available_compute(machine: Machine): Double {
+                    val cpus = machine.outgoingEdges.destinations<Cpu>("cpu")
+                    val cores = cpus.map { it.cores }.sum()
+                    val speed = cpus.fold(0) { acc, cpu -> acc + cpu.clockRate * cpu.cores } / cores
+                    return (1.0 - machine.state.load) * speed
+                }
+
+                machines.maxBy { machine -> communication(task, machine) + available_compute(machine) }
+            }
+        }
+}
+
+/**
  * Round robin (RR) scheduling.
  *
  * https://en.wikipedia.org/wiki/Round-robin_scheduling

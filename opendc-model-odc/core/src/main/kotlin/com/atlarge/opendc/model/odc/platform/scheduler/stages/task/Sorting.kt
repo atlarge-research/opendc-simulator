@@ -107,6 +107,54 @@ class HeftSortingPolicy : TaskSortingPolicy {
 }
 
 /**
+ * Critical-Path-on-a-Processor (CPOP) scheduling as described by H. Topcuoglu et al. in
+ * "Task Scheduling Algorithms for Heterogeneous Processors".
+ */
+class CpopSortingPolicy : TaskSortingPolicy {
+    override suspend fun sort(tasks: List<Task>): List<Task> =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                val machines = state.machines;
+                fun average_computation_cost(task: Task): Double {
+                    return machines.sumByDouble { machine ->
+                        val cpus = machine.outgoingEdges.destinations<Cpu>("cpu")
+                        val cores = cpus.map { it.cores }.sum()
+                        val speed = cpus.fold(0) { acc, cpu -> acc + cpu.clockRate * cpu.cores } / cores
+                        (task.remaining / speed).toDouble()
+                    } / machines.size
+                }
+                fun average_communication_cost(task_ni: Task, task_nj: Task): Double {
+                    // Here we assume that all the output of the dependency
+                    // (parent) task is needed as input for the task.
+                    return machines.sumByDouble { machine ->
+                        val ethernet_speeds = machine.outgoingEdges.destinations<Double>("ethernet_speed")
+                        val ethernet_speed = ethernet_speeds.sum()
+                        (task_ni.outputSize / ethernet_speed).toDouble()
+                    } / machines.size
+                }
+                // Upward rank of a `task`, as defined in the CPOP policy.
+                fun upward_rank(task: Task): Double {
+                    val avg_comp_cost = average_computation_cost(task)
+                    val highest_dependent_cost = (task.dependents.map { successor_task ->
+                        average_communication_cost(successor_task, task) + upward_rank(successor_task)
+                    }.max() ?: 0.0)
+                    return avg_comp_cost + highest_dependent_cost
+                }
+                // Downward rank of a 'task', as defined by the CPOP policy.
+                fun downward_rank(task: Task): Double {
+                    val rank_d = (task.dependencies.map { predecessor_task ->
+                        downward_rank(predecessor_task) + average_computation_cost(predecessor_task) +
+                        average_communication_cost(predecessor_task, task)
+                    }.max() ?: 0.0)
+                    return rank_d
+                }
+
+                tasks.sortedByDescending { task -> upward_rank(task) + downward_rank(task) }
+            }
+        }
+}
+
+/**
  * Priority Impact Scheduling Algorithm (PISA) scheduling.
  *
  * Hu Wu et al. A Priority Constrained Scheduling Strategy of Multiple Workflows
