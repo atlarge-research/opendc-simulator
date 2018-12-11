@@ -119,3 +119,29 @@ class HeftMachineSelectionPolicy : MachineSelectionPolicy {
             }
         }
 }
+
+/**
+ * Round robin (RR) scheduling.
+ *
+ * https://en.wikipedia.org/wiki/Round-robin_scheduling
+ */
+class RrMachineSelectionPolicy(private var next: Int = 0) : MachineSelectionPolicy {
+    override suspend fun select(machines: List<Machine>, task: Task): Machine? =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                // Try to find the machine with id `next`, if that machine can't
+                // be found try `next + 1`, etc.
+                val ids = machines.map { machine -> machine.id }
+                val max_id: Int = ids.max() ?: Int.MAX_VALUE
+                while (ids.size > 0) {
+                    val index = ids.indexOf(next)
+                    if (index != -1) {
+                        return machines[index]
+                    }
+                    next += 1;
+                    if (next > max_id) next = 0;
+                }
+                return null
+            }
+        }
+}

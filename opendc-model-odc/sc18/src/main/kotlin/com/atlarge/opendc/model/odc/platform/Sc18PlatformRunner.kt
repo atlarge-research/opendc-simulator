@@ -77,9 +77,9 @@ class SC18PlatformRunner : CliktCommand() {
      * This command line option specifies the list of schedulers to test in the experiments.
      */
     private val schedulers by option("--schedulers", help = "The list of schedulers to use").multiple(listOf(
-        "SRTF-BESTFIT", "SRTF-FIRSTFIT", "SRTF-WORSTFIT",
-        "FIFO-BESTFIT", "FIFO-FIRSTFIT", "FIFO-WORSTFIT",
-        "RANDOM-BESTFIT", "RANDOM-FIRSTFIT", "RANDOM-WORSTFIT",
+        "SRTF-BESTFIT", "SRTF-FIRSTFIT", "SRTF-WORSTFIT", "SRTF-ROUNDROBIN",
+        "FIFO-BESTFIT", "FIFO-FIRSTFIT", "FIFO-WORSTFIT", "FIFO-ROUNDROBIN",
+        "RANDOM-BESTFIT", "RANDOM-FIRSTFIT", "RANDOM-WORSTFIT", "RANDOM-ROUNDROBIN",
         "HEFT"
     ))
 
