@@ -84,7 +84,9 @@ class SgwfParser {
         }
 
         taskDependencies.forEach { task, dependencies ->
-            task.dependencies.addAll(dependencies.map { tasks[it]!! })
+            task.dependencies.addAll(dependencies.map { taskId ->
+                tasks[taskId] ?: throw IllegalArgumentException("Dependency task with id $taskId not found")
+            })
         }
 
         return InternalTrace(0, "SGWF Trace", jobs.values.toList())
