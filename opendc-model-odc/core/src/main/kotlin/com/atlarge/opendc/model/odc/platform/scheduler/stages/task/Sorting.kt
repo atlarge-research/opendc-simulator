@@ -81,7 +81,7 @@ class HeftSortingPolicy : TaskSortingPolicy {
         context<StageScheduler.State, OdcModel>().run {
             model.run {
                 val machines = state.machines;
-                fun average_computation_cost(task: Task): Double {
+                fun averageComputationCost(task: Task): Double {
                     return machines.sumByDouble { machine ->
                         val cpus = machine.outgoingEdges.destinations<Cpu>("cpu")
                         val cores = cpus.map { it.cores }.sum()
@@ -89,25 +89,25 @@ class HeftSortingPolicy : TaskSortingPolicy {
                         (task.remaining / speed).toDouble()
                     } / machines.size
                 }
-                fun average_communication_cost(dependency: Task): Double {
+                fun averageCommunicationCost(dependency: Task): Double {
                     // Here we assume that all the output of the dependency
                     // (parent) task is needed as input for the task.
                     return machines.sumByDouble { machine ->
-                        val ethernet_speeds = machine.outgoingEdges.destinations<Double>("ethernet_speed")
-                        val ethernet_speed = ethernet_speeds.sum()
-                        (dependency.output_size / ethernet_speed).toDouble()
+                        val ethernetSpeeds = machine.outgoingEdges.destinations<Double>("ethernetSpeed")
+                        val ethernetSpeed = ethernetSpeeds.sum()
+                        (dependency.outputSize / ethernetSpeed).toDouble()
                     } / machines.size
                 }
                 // Upward rank of a `task`, as defined in the HEFT policy.
-                fun upward_rank(task: Task): Double {
-                    val avg_comp_cost = average_computation_cost(task)
-                    val highest_dependent_cost = (task.dependents.map { dependent_task ->
-                        average_communication_cost(dependent_task) + upward_rank(dependent_task)
+                fun upwardRank(task: Task): Double {
+                    val avgCompCost = averageComputationCost(task)
+                    val highestDependentCost = (task.dependents.map { dependent_task ->
+                        averageCommunicationCost(dependent_task) + upwardRank(dependent_task)
                     }.max() ?: 0.0)
-                    return avg_comp_cost + highest_dependent_cost
+                    return avgCompCost + highestDependentCost
                 }
 
-                tasks.sortedByDescending { task -> upward_rank(task) }
+                tasks.sortedByDescending { task -> upwardRank(task) }
             }
         }
 }

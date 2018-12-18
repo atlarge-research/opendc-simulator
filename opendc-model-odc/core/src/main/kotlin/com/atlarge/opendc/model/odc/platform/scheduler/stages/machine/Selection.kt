@@ -107,9 +107,9 @@ class HeftMachineSelectionPolicy : MachineSelectionPolicy {
             model.run {
                 // NOTE: higher is better.
                 fun communication(task: Task, machine: Machine): Double {
-                    val ethernet_speeds = machine.outgoingEdges.destinations<Double>("ethernet_speed")
-                    val ethernet_speed = ethernet_speeds.sum()
-                    return ethernet_speed.toDouble() / task.input_size
+                    val ethernetSpeeds = machine.outgoingEdges.destinations<Double>("ethernetSpeed")
+                    val ethernetSpeed = ethernetSpeeds.sum()
+                    return ethernetSpeed.toDouble() / task.inputSize
                 }
                 fun available_compute(machine: Machine): Double {
                     val cpus = machine.outgoingEdges.destinations<Cpu>("cpu")

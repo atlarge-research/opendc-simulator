@@ -74,7 +74,7 @@ class Sc18SetupParser(private val objectMapper: ObjectMapper = jacksonObjectMapp
                                     else -> throw IllegalArgumentException("The cpu id $id is not recognized")
                                 }
                             }
-                            InternalMachine(null, position, cpus.toSet(), emptySet(), machine.ethernet_speed)
+                            InternalMachine(null, position, cpus.toSet(), emptySet(), machine.ethernetSpeed)
                         }
                         Rack(null, "", 0, 42, machines)
                     }
@@ -87,5 +87,3 @@ class Sc18SetupParser(private val objectMapper: ObjectMapper = jacksonObjectMapp
         return Path(null, sections)
     }
 }
-
-

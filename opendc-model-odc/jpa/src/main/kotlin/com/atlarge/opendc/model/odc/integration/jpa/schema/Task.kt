@@ -38,6 +38,8 @@ import javax.persistence.PostLoad
  * @property cores The amount of cores required for running the task.
  * @property dependencies The dependencies of the task.
  * @property dependents Tasks that are dependent on this task.
+ * @property inputSize The input size, i.e. required input data.
+ * @property outputSize The output size.
  * @property startTime The start time in the simulation.
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
@@ -48,8 +50,8 @@ class Task(
     override val cores: Int,
     override val dependencies: MutableSet<Task>,
     override val dependents: MutableSet<Task>,
-    override val input_size: Long,
-    override val output_size: Long,
+    override val inputSize: Long,
+    override val outputSize: Long,
     val startTime: Instant
 ) : Task {
     /**

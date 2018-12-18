@@ -184,26 +184,25 @@
             </many-to-one>
             <many-to-many name="dependencies" target-entity="Task">
                 <join-table name="task_dependencies">
-                    <join-column name="second_task_id"/>
-                    <inverse-join-column name="first_task_id"/>
+                    <join-column name="child_task_id"/>
+                    <inverse-join-column name="parent_task_id"/>
                 </join-table>
                 <cascade>
                     <cascade-persist/>
                 </cascade>
             </many-to-many>
-            <!-- TODO: this can be improved by reusing the `task_dependencies` table -->
             <many-to-many name="dependents" target-entity="Task">
-                <join-table name="task_dependents">
-                    <join-column name="second_task_id"/>
-                    <inverse-join-column name="first_task_id"/>
+                <join-table name="task_dependencies">
+                    <join-column name="parent_task_id"/>
+                    <inverse-join-column name="child_task_id"/>
                 </join-table>
                 <cascade>
                     <cascade-persist/>
                 </cascade>
             </many-to-many>
 
-            <basic name="input_size"/>
-            <basic name="output_size"/>
+            <basic name="inputSize"/>
+            <basic name="outputSize"/>
 
             <transient name="state"/>
             <transient name="remaining"/>
@@ -314,7 +313,7 @@
                 </cascade>
             </many-to-many>
 
-            <basic name="ethernet_speed"/>
+            <basic name="ethernetSpeed"/>
 
             <transient name="initialState"/>
         </attributes>

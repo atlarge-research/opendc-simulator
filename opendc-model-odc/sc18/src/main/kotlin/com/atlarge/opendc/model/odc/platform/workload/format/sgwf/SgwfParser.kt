@@ -71,13 +71,13 @@ class SgwfParser {
                     val dependencies = values[6].split(" ")
                         .filter { it.isNotEmpty() }
                         .map { it.trim().toInt() }
-                    val input_size: Long = 0
-                    val output_size: Long = 0
+                    val inputSize: Long = 0
+                    val outputSize: Long = 0
 
                     val flops: Long = 4000 * runtime * cores
 
                     val task = InternalTask(taskId, flops, cores, mutableSetOf(), mutableSetOf(),
-                        input_size, output_size, submitTime)
+                        inputSize, outputSize, submitTime)
                     val job = jobs.getOrPut(jobId) { InternalJob(jobId, mutableSetOf()) }
 
                     job.tasks.add(task)
