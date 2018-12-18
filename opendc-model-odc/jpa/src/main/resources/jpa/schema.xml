@@ -184,8 +184,8 @@
             </many-to-one>
             <many-to-many name="dependencies" target-entity="Task">
                 <join-table name="task_dependencies">
-                    <join-column name="child_task_id"/>
-                    <inverse-join-column name="parent_task_id"/>
+                    <join-column name="second_task_id"/>
+                    <inverse-join-column name="first_task_id"/>
                 </join-table>
                 <cascade>
                     <cascade-persist/>
@@ -193,8 +193,8 @@
             </many-to-many>
             <many-to-many name="dependents" target-entity="Task">
                 <join-table name="task_dependencies">
-                    <join-column name="parent_task_id"/>
-                    <inverse-join-column name="child_task_id"/>
+                    <join-column name="first_task_id"/>
+                    <inverse-join-column name="second_task_id"/>
                 </join-table>
                 <cascade>
                     <cascade-persist/>
