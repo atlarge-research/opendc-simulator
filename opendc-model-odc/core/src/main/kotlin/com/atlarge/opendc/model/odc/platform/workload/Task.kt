@@ -39,6 +39,11 @@ interface Task {
     val id: Int
 
     /**
+     * The priority of the task.
+     */
+    val priority: Int
+
+    /**
      * The amount of flops for this task.
      */
     val flops: Long

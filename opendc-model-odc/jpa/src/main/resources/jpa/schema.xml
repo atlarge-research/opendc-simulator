@@ -166,6 +166,7 @@
     <entity class="Task" access="FIELD" name="tasks" cacheable="false">
         <attributes>
             <id name="id" />
+            <basic name="priority"/>
             <basic name="flops">
                 <column name="total_flop_count"/>
             </basic>
