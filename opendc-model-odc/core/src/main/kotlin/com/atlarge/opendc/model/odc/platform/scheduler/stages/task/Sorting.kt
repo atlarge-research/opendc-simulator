@@ -127,9 +127,7 @@ class CpopSortingPolicy : TaskSortingPolicy {
                     // Here we assume that all the output of the dependency
                     // (parent) task is needed as input for the task.
                     return machines.sumByDouble { machine ->
-                        val ethernet_speeds = machine.outgoingEdges.destinations<Double>("ethernet_speed")
-                        val ethernet_speed = ethernet_speeds.sum()
-                        (task_ni.outputSize / ethernet_speed).toDouble()
+                        (task_ni.outputSize / machine.ethernetSpeed).toDouble()
                     } / machines.size
                 }
                 // Upward rank of a `task`, as defined in the CPOP policy.
