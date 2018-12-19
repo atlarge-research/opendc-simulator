@@ -34,6 +34,7 @@ import javax.persistence.Entity
  * @property position The position of the machine in the rack.
  * @property cpus The CPUs in the machine.
  * @property gpus The GPUs in the machine.
+ * @property ethernetSpeed The ethernet speed in mbps (megabits per second, 1 Gb/s is 10,000 mbps).
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
 @Entity
@@ -41,7 +42,8 @@ class Machine(
     val id: Int?,
     val position: Int,
     val cpus: Set<Cpu>,
-    val gpus: Set<Gpu>
-) : Machine() {
+    val gpus: Set<Gpu>,
+    ethernetSpeed: Double
+) : Machine(ethernetSpeed) {
     override fun toString(): String = "Machine(id=$id, position=$position, cpus=$cpus, gpus=$gpus)"
 }

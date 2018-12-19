@@ -79,7 +79,8 @@ class SC18PlatformRunner : CliktCommand() {
     private val schedulers by option("--schedulers", help = "The list of schedulers to use").multiple(listOf(
         "SRTF-BESTFIT", "SRTF-FIRSTFIT", "SRTF-WORSTFIT",
         "FIFO-BESTFIT", "FIFO-FIRSTFIT", "FIFO-WORSTFIT",
-        "RANDOM-BESTFIT", "RANDOM-FIRSTFIT", "RANDOM-WORSTFIT"
+        "RANDOM-BESTFIT", "RANDOM-FIRSTFIT", "RANDOM-WORSTFIT",
+        "HEFT"
     ))
 
     /**

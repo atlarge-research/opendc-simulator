@@ -29,10 +29,12 @@ import com.atlarge.opendc.model.odc.platform.scheduler.StageScheduler
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.BestFitMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.FirstFitMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.FunctionalMachineDynamicFilteringPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.HeftMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.RandomMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.WorstFitMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.FifoSortingPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.FunctionalTaskEligibilityFilteringPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.HeftSortingPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.RandomSortingPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.SrtfSortingPolicy
 import javax.persistence.AttributeConverter
@@ -61,9 +63,11 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
      * Convert a name of a scheduler into a [StageScheduler] based on the pattern `SORTING_POLICY-SELECTION_POLICY`.
      */
     private fun convert(name: String): StageScheduler? {
-        val parts = name.split("-")
+        var parts = name.split("-")
         if (parts.size < 2) {
-            return null
+            // Some policies only use a single name, in that case we'll use the
+            // entire name for both the sorting and selection policy.
+            parts = listOf(parts[0], parts[0])
         }
 
         val (sorting, selection) = parts
@@ -71,6 +75,7 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
             "FIFO" -> FifoSortingPolicy()
             "SRTF" -> SrtfSortingPolicy()
             "RANDOM" -> RandomSortingPolicy()
+            "HEFT" -> HeftSortingPolicy()
             else -> return null
         }
 
@@ -79,6 +84,7 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
             "BESTFIT" -> BestFitMachineSelectionPolicy()
             "WORSTFIT" -> WorstFitMachineSelectionPolicy()
             "RANDOM" -> RandomMachineSelectionPolicy()
+            "HEFT" -> HeftMachineSelectionPolicy()
             else -> return null
         }
 

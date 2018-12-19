@@ -36,6 +36,10 @@ import javax.persistence.PostLoad
  * @property id The unique identifier of the job.
  * @property flops The total amount of flops for the task.
  * @property cores The amount of cores required for running the task.
+ * @property dependencies The dependencies of the task.
+ * @property dependents Tasks that are dependent on this task.
+ * @property inputSize The input size, i.e. required input data.
+ * @property outputSize The output size.
  * @property startTime The start time in the simulation.
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
@@ -45,6 +49,9 @@ class Task(
     override val flops: Long,
     override val cores: Int,
     override val dependencies: MutableSet<Task>,
+    override val dependents: MutableSet<Task>,
+    override val inputSize: Long,
+    override val outputSize: Long,
     val startTime: Instant
 ) : Task {
     /**
@@ -64,7 +71,6 @@ class Task(
      */
     override var state: TaskState = TaskState.Underway
         private set
-
 
     /**
      * This method initialises the task object after it has been created by the JPA implementation. We use this

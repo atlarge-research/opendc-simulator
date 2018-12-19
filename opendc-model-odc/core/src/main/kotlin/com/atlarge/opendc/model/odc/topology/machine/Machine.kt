@@ -35,9 +35,10 @@ import mu.KotlinLogging
  * A Physical Machine (PM) inside a rack of a datacenter. It has a speed, and can be given a workload on which it will
  * work until finished or interrupted.
  *
+ * @property ethernetSpeed The speed of the ethernet port of the machine.
  * @author Fabian Mastenbroek (f.s.mastenbroek@student.tudelft.nl)
  */
-open class Machine : Process<Machine.State, Topology> {
+open class Machine(val ethernetSpeed: Double = 0.0) : Process<Machine.State, Topology> {
     /**
      * The logger instance to use for the simulator.
      */

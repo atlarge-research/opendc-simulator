@@ -191,6 +191,18 @@
                     <cascade-persist/>
                 </cascade>
             </many-to-many>
+            <many-to-many name="dependents" target-entity="Task">
+                <join-table name="task_dependencies">
+                    <join-column name="first_task_id"/>
+                    <inverse-join-column name="second_task_id"/>
+                </join-table>
+                <cascade>
+                    <cascade-persist/>
+                </cascade>
+            </many-to-many>
+
+            <basic name="inputSize"/>
+            <basic name="outputSize"/>
 
             <transient name="state"/>
             <transient name="remaining"/>
@@ -300,6 +312,9 @@
                     <cascade-persist/>
                 </cascade>
             </many-to-many>
+
+            <basic name="ethernetSpeed"/>
+
             <transient name="initialState"/>
         </attributes>
     </entity>

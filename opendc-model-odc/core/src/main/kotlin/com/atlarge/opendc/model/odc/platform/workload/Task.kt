@@ -49,6 +49,11 @@ interface Task {
     val dependencies: Set<Task>
 
     /**
+     * Set of tasks that are dependent on this task.
+     */
+    val dependents: Set<Task>
+
+    /**
      * The amount of cores required for running the task.
      */
     val cores: Int
@@ -57,6 +62,16 @@ interface Task {
      * The remaining flops for this task.
      */
     val remaining: Long
+
+    /**
+     * The input size, i.e. required input data.
+     */
+    val inputSize: Long
+
+    /**
+     * The output size.
+     */
+    val outputSize: Long
 
     /**
      * The state of the task.

@@ -24,7 +24,12 @@
 
 package com.atlarge.opendc.model.odc.platform.scheduler.stages.task
 
+import com.atlarge.opendc.model.odc.OdcModel
+import com.atlarge.opendc.model.odc.platform.scheduler.StageScheduler
 import com.atlarge.opendc.model.odc.platform.workload.Task
+import com.atlarge.opendc.model.odc.topology.machine.Cpu
+import com.atlarge.opendc.model.topology.destinations
+import com.atlarge.opendc.simulator.context
 import java.util.Random
 
 /**
@@ -62,4 +67,41 @@ class SrtfSortingPolicy : TaskSortingPolicy {
  */
 class RandomSortingPolicy(private val random: Random = Random()) : TaskSortingPolicy {
     override suspend fun sort(tasks: List<Task>): List<Task> = tasks.shuffled(random)
+}
+
+/**
+ * Heterogeneous Earliest Finish Time (HEFT) scheduling.
+ *
+ * https://en.wikipedia.org/wiki/Heterogeneous_Earliest_Finish_Time
+ */
+class HeftSortingPolicy : TaskSortingPolicy {
+    override suspend fun sort(tasks: List<Task>): List<Task> =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                val machines = state.machines;
+                fun averageComputationCost(task: Task): Double {
+                    return machines.sumByDouble { machine ->
+                        val cpus = machine.outgoingEdges.destinations<Cpu>("cpu")
+                        val cores = cpus.map { it.cores }.sum()
+                        val speed = cpus.fold(0) { acc, cpu -> acc + cpu.clockRate * cpu.cores } / cores
+                        (task.remaining / speed).toDouble()
+                    } / machines.size
+                }
+                fun averageCommunicationCost(dependency: Task): Double {
+                    // Here we assume that all the output of the dependency
+                    // (parent) task is needed as input for the task.
+                    return machines.sumByDouble { dependency.outputSize / it.ethernetSpeed } / machines.size
+                }
+                // Upward rank of a `task`, as defined in the HEFT policy.
+                fun upwardRank(task: Task): Double {
+                    val avgCompCost = averageComputationCost(task)
+                    val highestDependentCost = (task.dependents.map { dependent_task ->
+                        averageCommunicationCost(dependent_task) + upwardRank(dependent_task)
+                    }.max() ?: 0.0)
+                    return avgCompCost + highestDependentCost
+                }
+
+                tasks.sortedByDescending { task -> upwardRank(task) }
+            }
+        }
 }
