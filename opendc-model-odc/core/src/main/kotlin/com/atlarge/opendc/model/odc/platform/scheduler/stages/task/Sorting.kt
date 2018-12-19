@@ -123,9 +123,7 @@ class PisaSortingPolicy(val MaxWaitCount: Int = 100, private val waitCounts: Mut
 
     override suspend fun sort(tasks: List<Task>): List<Task> =
         tasks.map { task ->
-            var count = waitCounts.getOrPut(task, { 0 })
-            count += 1
-            waitCounts.put(task, count)
+            val count = waitCounts.merge(task, 1, Int::plus)!!
 
             // If the task is waiting to long it will get priority over the
             // other tasks.
