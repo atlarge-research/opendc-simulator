@@ -31,6 +31,7 @@ import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.FirstFitMa
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.FunctionalMachineDynamicFilteringPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.HeftMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.RandomMachineSelectionPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.RrMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.WorstFitMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.FifoSortingPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.FunctionalTaskEligibilityFilteringPolicy
@@ -85,6 +86,7 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
             "WORSTFIT" -> WorstFitMachineSelectionPolicy()
             "RANDOM" -> RandomMachineSelectionPolicy()
             "HEFT" -> HeftMachineSelectionPolicy()
+            "ROUNDROBIN" -> RrMachineSelectionPolicy()
             else -> return null
         }
 
