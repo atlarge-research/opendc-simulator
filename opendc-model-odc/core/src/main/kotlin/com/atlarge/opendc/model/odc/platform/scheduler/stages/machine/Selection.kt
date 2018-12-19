@@ -131,15 +131,16 @@ class RrMachineSelectionPolicy(private var next: Int = 0) : MachineSelectionPoli
             model.run {
                 // Try to find the machine with id `next`, if that machine can't
                 // be found try `next + 1`, etc.
-                val ids = machines.map { machine -> machine.id }
-                val max_id: Int = ids.max() ?: Int.MAX_VALUE
-                while (ids.size > 0) {
-                    val index = ids.indexOf(next)
+                val machines = machines.sortedBy { machine -> machine.id }
+                val max_id: Int = machines.maxBy{ machine -> machine.id }?.id ?: 0
+                while (machines.size > 0) {
+                    val index = machines.binarySearchBy(next) { machine -> machine.id }
+                    next += 1;
                     if (index != -1) {
                         return machines[index]
+                    } else if (next > max_id) {
+                        next = 0;
                     }
-                    next += 1;
-                    if (next > max_id) next = 0;
                 }
                 return null
             }
