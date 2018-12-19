@@ -121,6 +121,30 @@ class HeftMachineSelectionPolicy : MachineSelectionPolicy {
 }
 
 /**
+ * Critical-Path-on-a-Processor (CPOP) scheduling as described by H. Topcuoglu et al. in
+ * "Task Scheduling Algorithms for Heterogeneous Processors".
+ */
+class CpopMachineSelectionPolicy : MachineSelectionPolicy {
+    override suspend fun select(machines: List<Machine>, task: Task): Machine? =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                // NOTE: higher is better.
+                fun communication(task: Task, machine: Machine): Double {
+                    return machine.ethernetSpeed.toDouble() / task.inputSize
+                }
+                fun availableCompute(machine: Machine): Double {
+                    val cpus = machine.outgoingEdges.destinations<Cpu>("cpu")
+                    val cores = cpus.map { it.cores }.sum()
+                    val speed = cpus.fold(0) { acc, cpu -> acc + cpu.clockRate * cpu.cores } / cores
+                    return (1.0 - machine.state.load) * speed
+                }
+
+                machines.maxBy { machine -> communication(task, machine) + availableCompute(machine) }
+            }
+        }
+}
+
+/**
  * Round robin (RR) scheduling.
  *
  * https://en.wikipedia.org/wiki/Round-robin_scheduling
@@ -132,13 +156,13 @@ class RrMachineSelectionPolicy(private var next: Int = 0) : MachineSelectionPoli
                 // Try to find the machine with id `next`, if that machine can't
                 // be found try `next + 1`, etc.
                 val machines = machines.sortedBy { machine -> machine.id }
-                val max_id: Int = machines.maxBy{ machine -> machine.id }?.id ?: 0
+                val maxId: Int = machines.maxBy{ machine -> machine.id }?.id ?: 0
                 while (machines.size > 0) {
                     val index = machines.binarySearchBy(next) { machine -> machine.id }
                     next += 1;
                     if (index != -1) {
                         return machines[index]
-                    } else if (next > max_id) {
+                    } else if (next > maxId) {
                         next = 0;
                     }
                 }

@@ -95,13 +95,59 @@ class HeftSortingPolicy : TaskSortingPolicy {
                 // Upward rank of a `task`, as defined in the HEFT policy.
                 fun upwardRank(task: Task): Double {
                     val avgCompCost = averageComputationCost(task)
-                    val highestDependentCost = (task.dependents.map { dependent_task ->
-                        averageCommunicationCost(dependent_task) + upwardRank(dependent_task)
+                    val highestDependentCost = (task.dependents.map { dependentTask ->
+                        averageCommunicationCost(dependentTask) + upwardRank(dependentTask)
                     }.max() ?: 0.0)
                     return avgCompCost + highestDependentCost
                 }
 
                 tasks.sortedByDescending { task -> upwardRank(task) }
+            }
+        }
+}
+
+/**
+ * Critical-Path-on-a-Processor (CPOP) scheduling as described by H. Topcuoglu et al. in
+ * "Task Scheduling Algorithms for Heterogeneous Processors".
+ */
+class CpopSortingPolicy : TaskSortingPolicy {
+    override suspend fun sort(tasks: List<Task>): List<Task> =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                val machines = state.machines;
+                fun averageComputationCost(task: Task): Double {
+                    return machines.sumByDouble { machine ->
+                        val cpus = machine.outgoingEdges.destinations<Cpu>("cpu")
+                        val cores = cpus.map { it.cores }.sum()
+                        val speed = cpus.fold(0) { acc, cpu -> acc + cpu.clockRate * cpu.cores } / cores
+                        (task.remaining / speed).toDouble()
+                    } / machines.size
+                }
+                fun averageCommunicationCost(taskNi: Task, taskNj: Task): Double {
+                    // Here we assume that all the output of the dependency
+                    // (parent) task is needed as input for the task.
+                    return machines.sumByDouble { machine ->
+                        (taskNi.outputSize / machine.ethernetSpeed).toDouble()
+                    } / machines.size
+                }
+                // Upward rank of a `task`, as defined in the CPOP policy.
+                fun upwardRank(task: Task): Double {
+                    val avgCompCost = averageComputationCost(task)
+                    val highestDependentCost = (task.dependents.map { successorTask ->
+                        averageCommunicationCost(successorTask, task) + upwardRank(successorTask)
+                    }.max() ?: 0.0)
+                    return avgCompCost + highestDependentCost
+                }
+                // Downward rank of a 'task', as defined by the CPOP policy.
+                fun downwardRank(task: Task): Double {
+                    val rankD = (task.dependencies.map { predecessorTask ->
+                        downwardRank(predecessorTask) + averageComputationCost(predecessorTask) +
+                        averageCommunicationCost(predecessorTask, task)
+                    }.max() ?: 0.0)
+                    return rankD
+                }
+
+                tasks.sortedByDescending { task -> upwardRank(task) + downwardRank(task) }
             }
         }
 }
