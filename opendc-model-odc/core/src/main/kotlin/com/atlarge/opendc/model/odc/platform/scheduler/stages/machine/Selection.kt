@@ -29,7 +29,6 @@ import com.atlarge.opendc.model.odc.platform.scheduler.StageScheduler
 import com.atlarge.opendc.model.odc.platform.workload.Task
 import com.atlarge.opendc.model.odc.topology.machine.Cpu
 import com.atlarge.opendc.model.odc.topology.machine.Machine
-import com.atlarge.opendc.model.topology.Topology
 import com.atlarge.opendc.model.topology.destinations
 import com.atlarge.opendc.simulator.context
 import java.util.Random
@@ -107,18 +106,16 @@ class HeftMachineSelectionPolicy : MachineSelectionPolicy {
             model.run {
                 // NOTE: higher is better.
                 fun communication(task: Task, machine: Machine): Double {
-                    val ethernetSpeeds = machine.outgoingEdges.destinations<Double>("ethernetSpeed")
-                    val ethernetSpeed = ethernetSpeeds.sum()
-                    return ethernetSpeed.toDouble() / task.inputSize
+                    return machine.ethernetSpeed / task.inputSize
                 }
-                fun available_compute(machine: Machine): Double {
+                fun availableCompute(machine: Machine): Double {
                     val cpus = machine.outgoingEdges.destinations<Cpu>("cpu")
                     val cores = cpus.map { it.cores }.sum()
                     val speed = cpus.fold(0) { acc, cpu -> acc + cpu.clockRate * cpu.cores } / cores
                     return (1.0 - machine.state.load) * speed
                 }
 
-                machines.maxBy { machine -> communication(task, machine) + available_compute(machine) }
+                machines.maxBy { machine -> communication(task, machine) + availableCompute(machine) }
             }
         }
 }

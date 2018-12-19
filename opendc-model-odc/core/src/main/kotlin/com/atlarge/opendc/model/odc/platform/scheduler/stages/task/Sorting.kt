@@ -28,8 +28,6 @@ import com.atlarge.opendc.model.odc.OdcModel
 import com.atlarge.opendc.model.odc.platform.scheduler.StageScheduler
 import com.atlarge.opendc.model.odc.platform.workload.Task
 import com.atlarge.opendc.model.odc.topology.machine.Cpu
-import com.atlarge.opendc.model.odc.topology.machine.Machine
-import com.atlarge.opendc.model.topology.Topology
 import com.atlarge.opendc.model.topology.destinations
 import com.atlarge.opendc.simulator.context
 import java.util.Random
@@ -92,11 +90,7 @@ class HeftSortingPolicy : TaskSortingPolicy {
                 fun averageCommunicationCost(dependency: Task): Double {
                     // Here we assume that all the output of the dependency
                     // (parent) task is needed as input for the task.
-                    return machines.sumByDouble { machine ->
-                        val ethernetSpeeds = machine.outgoingEdges.destinations<Double>("ethernetSpeed")
-                        val ethernetSpeed = ethernetSpeeds.sum()
-                        (dependency.outputSize / ethernetSpeed).toDouble()
-                    } / machines.size
+                    return machines.sumByDouble { dependency.outputSize / it.ethernetSpeed } / machines.size
                 }
                 // Upward rank of a `task`, as defined in the HEFT policy.
                 fun upwardRank(task: Task): Double {

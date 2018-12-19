@@ -43,7 +43,7 @@ class Machine(
     val position: Int,
     val cpus: Set<Cpu>,
     val gpus: Set<Gpu>,
-    val ethernetSpeed: Double
-) : Machine() {
+    ethernetSpeed: Double
+) : Machine(ethernetSpeed) {
     override fun toString(): String = "Machine(id=$id, position=$position, cpus=$cpus, gpus=$gpus)"
 }
