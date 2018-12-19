@@ -31,7 +31,9 @@ import com.atlarge.opendc.model.odc.topology.machine.Cpu
 import com.atlarge.opendc.model.odc.topology.machine.Machine
 import com.atlarge.opendc.model.topology.destinations
 import com.atlarge.opendc.simulator.context
+import java.util.NavigableMap
 import java.util.Random
+import java.util.TreeMap
 import kotlin.math.abs
 
 /**
@@ -149,24 +151,16 @@ class CpopMachineSelectionPolicy : MachineSelectionPolicy {
  *
  * https://en.wikipedia.org/wiki/Round-robin_scheduling
  */
-class RrMachineSelectionPolicy(private var next: Int = 0) : MachineSelectionPolicy {
+class RrMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionPolicy {
     override suspend fun select(machines: List<Machine>, task: Task): Machine? =
         context<StageScheduler.State, OdcModel>().run {
             model.run {
-                // Try to find the machine with id `next`, if that machine can't
-                // be found try `next + 1`, etc.
-                val machines = machines.sortedBy { machine -> machine.id }
-                val maxId: Int = machines.maxBy{ machine -> machine.id }?.id ?: 0
-                while (machines.size > 0) {
-                    val index = machines.binarySearchBy(next) { machine -> machine.id }
-                    next += 1;
-                    if (index != -1) {
-                        return machines[index]
-                    } else if (next > maxId) {
-                        next = 0;
-                    }
+                if (machines.isEmpty()) {
+                    return null
                 }
-                return null
+                val ids: NavigableMap<Int, Machine> = TreeMap(machines.associateBy { it.id })
+                current = ids.higherKey(current) ?: ids.firstKey()
+                return ids[current]
             }
         }
 }
