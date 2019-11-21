@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2017 atlarge-research
+ * Copyright (c) 2018 atlarge-research
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-rootProject.name = "opendc-simulator"
 
-include(":odcsim:odcsim-api")
-include(":odcsim:odcsim-engine-omega")
-include(":odcsim:odcsim-engine-ds")
+description = "Distributed iplementation of the odcsim API"
+
+/* Build configuration */
+plugins {
+    `kotlin-library-convention`
+}
+
+/* Project configuration */
+repositories {
+    jcenter()
+}
+
+dependencies {
+    api(project(":odcsim:odcsim-api"))
+
+    implementation(kotlin("stdlib"))
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:${Library.JUNIT_JUPITER}")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${Library.JUNIT_JUPITER}")
+    testImplementation("org.junit.platform:junit-platform-launcher:${Library.JUNIT_PLATFORM}")
+}

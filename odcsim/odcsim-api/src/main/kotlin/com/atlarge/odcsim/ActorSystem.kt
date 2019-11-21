@@ -22,16 +22,39 @@
  * SOFTWARE.
  */
 
-package com.atlarge.odcsim.engine.omega
-
-import com.atlarge.odcsim.ActorSystem
-import com.atlarge.odcsim.ActorSystemFactory
-import java.util.ServiceLoader
+package com.atlarge.odcsim
 
 /**
- * An [ActorSystemFactory] for the Omega engine, used by the [ServiceLoader] API to create [OmegaActorSystem] instances.
+ * An actor system is a hierarchical grouping of actors that represents a discrete event simulation.
+ *
+ * An implementation of this interface should be provided by an engine. See for example *odcsim-engine-omega*,
+ * which is the reference implementation of the *odcsim* API.
  */
-class OmegaActorSystemFactory : ActorSystemFactory {
-    override operator fun invoke(name: String): ActorSystem =
-        OmegaActorSystem(name)
+interface ActorSystem {
+    /**
+     * The name of this engine instance, used to distinguish between multiple engines running within the same JVM.
+     */
+    val name: String
+
+    /**
+     * Create an actor at the root of this system.
+     *
+     * @param behavior The behavior of the actor to spawn.
+     * @param name The name of the actor to spawn.
+     */
+    fun spawn(behavior: Behavior, name: String): ActorRef
+
+    /**
+     * Run the actors until the specified point in simulation time.
+     *
+     * @param until The point until which the simulation should run.
+     */
+    fun run(until: Duration = Duration.POSITIVE_INFINITY)
+
+    /**
+     * Terminates this actor system in an asynchronous fashion.
+     *
+     * This will stop the root actor and in turn will recursively stop all its child actors.
+     */
+    fun terminate()
 }

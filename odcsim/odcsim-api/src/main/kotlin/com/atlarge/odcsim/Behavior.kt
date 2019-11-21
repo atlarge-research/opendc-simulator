@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2017 atlarge-research
+ * Copyright (c) 2018 atlarge-research
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-rootProject.name = "opendc-simulator"
 
-include(":odcsim:odcsim-api")
-include(":odcsim:odcsim-engine-omega")
-include(":odcsim:odcsim-engine-ds")
+package com.atlarge.odcsim
+
+/**
+ * The representation of the behavior of an actor.
+ *
+ * Users are advised not to close over [ActorContext] within [Behavior], as it will causes it to become immobile,
+ * meaning it cannot be moved to another context and executed there, and therefore it cannot be replicated or forked
+ * either.
+ */
+interface Behavior {
+    /**
+     * Start the actor running this [Behavior].
+     *
+     * @param ctx The [ActorContext] in which the actor is currently running.
+     */
+    fun start(ctx: ActorContext) {}
+
+    /**
+     * Process an incoming message.
+     *
+     * @param ctx The [ActorContext] in which the actor is currently running.
+     * @param msg The message that was received.
+     */
+    fun receive(ctx: ActorContext, msg: Any) {}
+
+    /**
+     * Process an incoming signal.
+     *
+     * @param ctx The [ActorContext] in which the actor is currently running.
+     * @param signal The signal that was received.
+     */
+    fun receiveSignal(ctx: ActorContext, signal: Signal) {}
+}
+

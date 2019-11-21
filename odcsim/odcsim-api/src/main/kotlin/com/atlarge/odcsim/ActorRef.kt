@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2017 atlarge-research
+ * Copyright (c) 2018 atlarge-research
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-rootProject.name = "opendc-simulator"
 
-include(":odcsim:odcsim-api")
-include(":odcsim:odcsim-engine-omega")
-include(":odcsim:odcsim-engine-ds")
+package com.atlarge.odcsim
+
+import java.io.Serializable
+
+/**
+ * A reference to an actor in simulation.
+ */
+interface ActorRef : Comparable<ActorRef>, Serializable {
+    /**
+     * The path for this actor (from this actor up to the root actor).
+     */
+    val path: ActorPath
+
+    /**
+     * Compare this reference to another actor reference.
+     */
+    override fun compareTo(other: ActorRef): Int = path.compareTo(other.path)
+}
+

@@ -36,9 +36,4 @@ object Library {
      * The library for hosting the tests.
      */
     val JUNIT_PLATFORM = "1.5.2"
-
-    /**
-     * Logging facade.
-     */
-    val SLF4J = "1.7.29"
 }

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2017 atlarge-research
+ * Copyright (c) 2019 atlarge-research
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-rootProject.name = "opendc-simulator"
 
-include(":odcsim:odcsim-api")
-include(":odcsim:odcsim-engine-omega")
-include(":odcsim:odcsim-engine-ds")
+package com.atlarge.odcsim.engine.ds
+
+import com.atlarge.odcsim.ActorSystem
+import com.atlarge.odcsim.ActorSystemFactory
+import java.util.ServiceLoader
+
+/**
+ * An [ActorSystemFactory] for the Omega engine, used by the [ServiceLoader] API to create [DistributedActorSystem] instances.
+ */
+class DistributedActorSystemFactory : ActorSystemFactory {
+    override operator fun invoke(name: String): ActorSystem = DistributedActorSystem(name)
+}

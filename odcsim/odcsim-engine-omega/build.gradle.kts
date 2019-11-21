@@ -35,14 +35,12 @@ repositories {
 }
 
 dependencies {
-    api(project(":odcsim:odcsim-core"))
+    api(project(":odcsim:odcsim-api"))
 
     implementation(kotlin("stdlib"))
     implementation("org.jetbrains:annotations:17.0.0")
 
-    testImplementation(project(":odcsim:odcsim-engine-tests"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:${Library.JUNIT_JUPITER}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${Library.JUNIT_JUPITER}")
     testImplementation("org.junit.platform:junit-platform-launcher:${Library.JUNIT_PLATFORM}")
-    testRuntimeOnly("org.slf4j:slf4j-simple:${Library.SLF4J}")
 }

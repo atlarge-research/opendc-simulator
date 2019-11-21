@@ -30,21 +30,12 @@ import com.atlarge.odcsim.ActorRef
 import com.atlarge.odcsim.ActorSystem
 import com.atlarge.odcsim.Behavior
 import com.atlarge.odcsim.Duration
-import com.atlarge.odcsim.Envelope
 import com.atlarge.odcsim.Instant
-import com.atlarge.odcsim.PostStop
 import com.atlarge.odcsim.PreStart
 import com.atlarge.odcsim.Signal
-import com.atlarge.odcsim.Terminated
-import com.atlarge.odcsim.empty
-import com.atlarge.odcsim.internal.BehaviorInterpreter
-import com.atlarge.odcsim.internal.logging.LoggerImpl
 import org.jetbrains.annotations.Async
-import org.slf4j.Logger
-import java.util.Collections
 import java.util.PriorityQueue
-import java.util.UUID
-import java.util.WeakHashMap
+import java.util.Queue
 import kotlin.math.max
 
 /**
@@ -53,10 +44,9 @@ import kotlin.math.max
  * This engine implementation is a single-threaded implementation, running actors synchronously and
  * provides a single priority queue for all events (messages, ticks, etc) that occur.
  *
- * @param guardianBehavior The behavior of the guardian (root) actor.
  * @param name The name of the engine instance.
  */
-class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val name: String) : ActorSystem<T>, ActorRef<T> {
+class OmegaActorSystem(override val name: String) : ActorSystem {
     /**
      * The state of the actor system.
      */
@@ -65,16 +55,12 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
     /**
      * The event queue to process
      */
-    private val queue: PriorityQueue<EnvelopeImpl> = PriorityQueue(
-        Comparator
-            .comparingDouble(EnvelopeImpl::time)
-            .thenComparingLong(EnvelopeImpl::id)
-    )
+    private val messageQueue: Queue<EnvelopeImpl> = PriorityQueue()
 
     /**
      * The registry of actors in the system.
      */
-    private val registry: MutableMap<ActorPath, Actor<*>> = HashMap()
+    private val registry: MutableMap<ActorPath, Actor> = HashMap()
 
     /**
      * The root actor path of the system.
@@ -82,35 +68,21 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
     private val root: ActorPath = ActorPath.Root()
 
     /**
-     * The system actor path.
-     */
-    private val system: ActorPath = root / "system"
-
-    /**
      * The current point in simulation time.
      */
-    override var time: Instant = .0
-
-    /**
-     * The path to the root actor.
-     */
-    override val path: ActorPath = root / "user"
+    private var time: Instant = .0
 
     init {
-        registry[system] = Actor(ActorRefImpl(this, system), empty<Nothing>())
-        registry[path] = Actor(this, guardianBehavior)
-        schedule(path, PreStart, .0)
+        val rootActor = Actor(ActorRefImpl(this, root), null, object : Behavior {})
+        registry[root] = rootActor
+        rootActor.start()
     }
 
     override fun run(until: Duration) {
         require(until >= .0) { "The given instant must be a non-negative number" }
 
         // Start the system/guardian actor on initial run
-        if (state == ActorSystemState.CREATED) {
-            state = ActorSystemState.STARTED
-            registry[system]!!.isolate { it.start() }
-            registry[path]!!.isolate { it.start() }
-        } else if (state == ActorSystemState.TERMINATED) {
+        if (state == ActorSystemState.TERMINATED) {
             throw IllegalStateException("The ActorSystem has been terminated.")
         }
 
@@ -120,7 +92,7 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
                 throw InterruptedException()
             }
 
-            val envelope = queue.peek() ?: break
+            val envelope = messageQueue.peek() ?: break
             val delivery = envelope.time.takeUnless { it > until } ?: break
 
             // A message should never be delivered out of order in this single-threaded implementation. Assert for
@@ -128,7 +100,7 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
             assert(delivery >= time) { "Message delivered out of order [expected=$delivery, actual=$time]" }
 
             time = delivery
-            queue.poll()
+            messageQueue.poll()
 
             processEnvelope(envelope)
         }
@@ -138,23 +110,14 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
         time = max(time, until)
     }
 
-    override fun send(msg: T, after: Duration) = schedule(path, msg, after)
+    override fun spawn(behavior: Behavior, name: String): ActorRef {
+        return registry[root]!!.spawn(behavior, name)
+    }
 
     override fun terminate() {
-        registry[path]?.stop(null)
-        registry[system]?.stop(null)
+        registry[root]!!.stop(null)
+        state = ActorSystemState.TERMINATED
     }
-
-    override suspend fun <U : Any> spawnSystem(behavior: Behavior<U>, name: String): ActorRef<U> {
-        return registry[system]!!.spawn(behavior, name)
-    }
-
-    override fun compareTo(other: ActorRef<*>): Int = path.compareTo(other.path)
-
-    /**
-     * The identifier for the next message to be scheduled.
-     */
-    private var nextId: Long = 0
 
     /**
      * Schedule a message to be processed by the engine.
@@ -165,14 +128,14 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
      */
     private fun schedule(@Async.Schedule path: ActorPath, message: Any, delay: Duration) {
         require(delay >= .0) { "The given delay must be a non-negative number" }
-        scheduleEnvelope(EnvelopeImpl(nextId++, path, time + delay, message))
+        scheduleEnvelope(EnvelopeImpl(path, time + delay, message))
     }
 
     /**
      * Schedule the specified envelope to be processed by the engine.
      */
     private fun scheduleEnvelope(@Async.Schedule envelope: EnvelopeImpl) {
-        queue.add(envelope)
+        messageQueue.add(envelope)
     }
 
     /**
@@ -188,44 +151,36 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
     /**
      * An actor as represented in the Omega engine.
      *
-     * @param self The [ActorRef] to this actor.
-     * @param initialBehavior The initial behavior of this actor.
+     * @property self The [ActorRef] to this actor.
+     * @property parent The parent actor.
+     * @param behavior The behavior of this actor.
      */
-    private inner class Actor<T : Any>(override val self: ActorRef<T>, initialBehavior: Behavior<T>) : ActorContext<T> {
-        val childActors: MutableMap<String, Actor<*>> = mutableMapOf()
-        val interpreter = BehaviorInterpreter(initialBehavior)
-        val watchers: MutableSet<ActorPath> = Collections.newSetFromMap(WeakHashMap<ActorPath, Boolean>())
+    private inner class Actor(override val self: ActorRef, private val parent: Actor?, private var behavior: Behavior) : ActorContext {
+        val childActors: MutableMap<String, Actor> = mutableMapOf()
 
         override val time: Instant
             get() = this@OmegaActorSystem.time
 
-        override val children: List<ActorRef<*>>
+        override val children: List<ActorRef>
             get() = childActors.values.map { it.self }
 
-        override val system: ActorSystem<*>
+        override val system: ActorSystem
             get() = this@OmegaActorSystem
 
-        override val log: Logger by lazy(LazyThreadSafetyMode.NONE) { LoggerImpl(this) }
+        override fun getChild(name: String): ActorRef? = childActors[name]?.self
 
-        override fun getChild(name: String): ActorRef<*>? = childActors[name]?.self
+        override fun send(ref: ActorRef, msg: Any, after: Duration) = schedule(ref.path, msg, after)
 
-        override fun <U : Any> send(ref: ActorRef<U>, msg: U, after: Duration) = schedule(ref.path, msg, after)
-
-        override fun <U : Any> spawn(behavior: Behavior<U>, name: String): ActorRef<U> {
+        override fun spawn(behavior: Behavior, name: String): ActorRef {
             require(name.isNotEmpty()) { "Actor name may not be empty" }
             require(!name.startsWith("$")) { "Actor name may not start with $-sign" }
             return internalSpawn(behavior, name)
         }
 
-        override fun <U : Any> spawnAnonymous(behavior: Behavior<U>): ActorRef<U> {
-            val name = "$" + UUID.randomUUID()
-            return internalSpawn(behavior, name)
-        }
-
-        private fun <U : Any> internalSpawn(behavior: Behavior<U>, name: String): ActorRef<U> {
+        private fun internalSpawn(behavior: Behavior, name: String): ActorRef {
             require(name !in childActors) { "Actor name $name not unique" }
-            val ref = ActorRefImpl<U>(this@OmegaActorSystem, self.path.child(name))
-            val actor = Actor(ref, behavior)
+            val ref = ActorRefImpl(this@OmegaActorSystem, self.path.child(name))
+            val actor = Actor(ref, this, behavior)
             registry[ref.path] = actor
             childActors[name] = actor
             schedule(ref.path, PreStart, .0)
@@ -233,59 +188,43 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
             return ref
         }
 
-        override fun stop(child: ActorRef<*>) {
+        override fun stop(actor: ActorRef) {
             when {
                 // Must be a direct child of this actor
-                child.path.parent == self.path -> {
-                    val ref = childActors[child.path.name] ?: return
+                actor.path.parent == self.path -> {
+                    val ref = childActors[actor.path.name] ?: return
                     ref.stop(null)
                 }
-                self == child -> throw IllegalArgumentException(
-                        "Only direct children of an actor may be stopped through the actor context, " +
-                            "but you tried to stop [$self] by passing its ActorRef to the `stop` method. " +
-                            "Stopping self has to be expressed as explicitly returning a Stop Behavior."
-                )
+                self == actor -> stop(null)
                 else -> throw IllegalArgumentException(
-                        "Only direct children of an actor may be stopped through the actor context, " +
-                            "but [$child] is not a child of [$self]. Stopping other actors has to be expressed as " +
-                            "an explicit stop message that the actor accepts."
+                    "Only direct children of an actor may be stopped through the actor context, " +
+                        "but [$actor] is not a child of [$self]. Stopping other actors has to be expressed as " +
+                        "an explicit stop message that the actor accepts."
                 )
             }
         }
-
-        override fun watch(target: ActorRef<*>) {
-            registry[target.path]?.watchers?.add(path)
-        }
-
-        override fun unwatch(target: ActorRef<*>) {
-            registry[target.path]?.watchers?.remove(path)
-        }
-
-        // Synchronization of actors in a single-threaded simulation is trivial: all actors are consistent in virtual
-        // time.
-        override fun sync(target: ActorRef<*>) {}
-
-        override fun unsync(target: ActorRef<*>) {}
-
-        override fun isSync(target: ActorRef<*>): Boolean = true
 
         /**
          * Start this actor.
          */
         fun start() {
-            interpreter.start(this)
+            behavior.start(this)
         }
 
         /**
          * Stop this actor.
          */
-        fun stop(failure: Throwable?) {
-            interpreter.stop(this)
-            childActors.values.forEach { it.stop(failure) }
+        fun stop(failure: Throwable?, propagated: Boolean = false) {
+            val it = childActors.values.iterator()
+            while (it.hasNext()) {
+                val child = it.next()
+                child.stop(failure, true)
+                it.remove()
+            }
             registry.remove(self.path)
-            interpreter.interpretSignal(this, PostStop)
-            val termination = Terminated(self, failure)
-            watchers.forEach { schedule(it, termination, 0.0) }
+            if (!propagated) {
+                parent?.childActors?.remove(self.path.name)
+            }
         }
 
         /**
@@ -293,19 +232,14 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
          */
         fun interpretMessage(msg: Any) {
             if (msg is Signal) {
-                interpreter.interpretSignal(this, msg)
+                behavior.receiveSignal(this, msg)
             } else {
-                @Suppress("UNCHECKED_CAST")
-                interpreter.interpretMessage(this, msg as T)
-            }
-
-            if (!interpreter.isAlive) {
-                stop(null)
+                behavior.receive(this, msg)
             }
         }
 
         override fun equals(other: Any?): Boolean =
-            other is OmegaActorSystem<*>.Actor<*> && self.path == other.self.path
+            other is Actor && self.path == other.self.path
 
         override fun hashCode(): Int = self.path.hashCode()
     }
@@ -313,13 +247,16 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
     /**
      * Isolate uncaught exceptions originating from actor interpreter invocations.
      */
-    private inline fun <T : Any, U> Actor<T>.isolate(block: (Actor<T>) -> U): U? {
+    private inline fun <U> Actor.isolate(block: (Actor) -> U): U? {
         return try {
             block(this)
+        } catch (e: InterruptedException) {
+            // Pass on thread interrupts
+            throw e
         } catch (t: Throwable) {
             // Forcefully stop the actor if it crashed
             stop(t)
-            log.error("Unhandled exception in actor $path", t)
+            t.printStackTrace()
             null
         }
     }
@@ -328,33 +265,40 @@ class OmegaActorSystem<in T : Any>(guardianBehavior: Behavior<T>, override val n
      * Enumeration to track the state of the actor system.
      */
     private enum class ActorSystemState {
-        CREATED, STARTED, TERMINATED
+        CREATED, TERMINATED
     }
 
     /**
      * Internal [ActorRef] implementation for this actor system.
      */
-    private data class ActorRefImpl<T : Any>(
-        private val owner: OmegaActorSystem<*>,
+    private data class ActorRefImpl(
+        private val owner: OmegaActorSystem,
         override val path: ActorPath
-    ) : ActorRef<T> {
+    ) : ActorRef {
         override fun toString(): String = "Actor[$path]"
 
-        override fun compareTo(other: ActorRef<*>): Int = path.compareTo(other.path)
+        override fun compareTo(other: ActorRef): Int = path.compareTo(other.path)
     }
 
     /**
      * A wrapper around a message that has been scheduled for processing.
      *
-     * @property id The identifier of the message to keep the priority queue stable.
      * @property destination The destination of the message.
      * @property time The point in time to deliver the message.
      * @property message The message to wrap.
      */
     private class EnvelopeImpl(
-        val id: Long,
         val destination: ActorPath,
-        override val time: Instant,
-        override val message: Any
-    ) : Envelope<Any>
+        val time: Instant,
+        val message: Any
+    ) : Comparable<EnvelopeImpl> {
+        override fun compareTo(other: EnvelopeImpl): Int {
+            val cmp = time.compareTo(other.time)
+            return if (cmp == 0) {
+                destination.compareTo(other.destination)
+            } else {
+                cmp
+            }
+        }
+    }
 }

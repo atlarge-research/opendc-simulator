@@ -21,8 +21,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-rootProject.name = "opendc-simulator"
 
-include(":odcsim:odcsim-api")
-include(":odcsim:odcsim-engine-omega")
-include(":odcsim:odcsim-engine-ds")
+description = "Framework for discrete event simulation in Kotlin"
+
+/* Build configuration */
+plugins {
+    `kotlin-library-convention`
+}
+
+dependencies {
+    implementation(kotlin("stdlib"))
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:${Library.JUNIT_JUPITER}")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${Library.JUNIT_JUPITER}")
+    testImplementation("org.junit.platform:junit-platform-launcher:${Library.JUNIT_PLATFORM}")
+    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0")
+}
