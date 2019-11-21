@@ -33,10 +33,10 @@ import com.atlarge.odcsim.Duration
 import com.atlarge.odcsim.Instant
 import com.atlarge.odcsim.PreStart
 import com.atlarge.odcsim.Signal
-import org.jetbrains.annotations.Async
 import java.util.PriorityQueue
 import java.util.Queue
 import kotlin.math.max
+import org.jetbrains.annotations.Async
 
 /**
  * The reference implementation of the [ActorSystem] instance for the OpenDC simulation core.

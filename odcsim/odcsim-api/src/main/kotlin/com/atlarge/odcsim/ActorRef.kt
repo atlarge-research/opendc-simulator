@@ -40,4 +40,3 @@ interface ActorRef : Comparable<ActorRef>, Serializable {
      */
     override fun compareTo(other: ActorRef): Int = path.compareTo(other.path)
 }
-

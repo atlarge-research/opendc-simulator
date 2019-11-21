@@ -55,4 +55,3 @@ interface Behavior {
      */
     fun receiveSignal(ctx: ActorContext, signal: Signal) {}
 }
-

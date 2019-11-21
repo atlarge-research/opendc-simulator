@@ -48,4 +48,3 @@ object PostStop : Signal
  * @property failure The failure that caused the termination, or `null` on graceful termination.
  */
 data class Terminated(val ref: ActorRef, val failure: Throwable? = null) : Signal
-

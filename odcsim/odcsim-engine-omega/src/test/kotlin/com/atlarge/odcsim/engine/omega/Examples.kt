@@ -26,10 +26,10 @@ package com.atlarge.odcsim.engine.omega
 
 import com.atlarge.odcsim.ActorContext
 import com.atlarge.odcsim.ActorRef
-import org.junit.jupiter.api.Test
 import com.atlarge.odcsim.ActorSystemFactory
 import com.atlarge.odcsim.Behavior
 import kotlin.random.Random
+import org.junit.jupiter.api.Test
 
 /**
  * A collection of examples showing the functionality of the odcsim framework.
@@ -64,7 +64,6 @@ class Examples {
                 ctx.send(pong, Ping(ctx.self))
             }
 
-
             override fun receive(ctx: ActorContext, msg: Any) {
                 if (msg is Pong) {
                     println("[${ctx.time}] PONG")
@@ -72,7 +71,6 @@ class Examples {
                 }
             }
         }, name = "ping")
-
 
         system.run(until = 10.0)
     }
@@ -110,7 +108,6 @@ class Examples {
                 }
             }
         }, name = "manager")
-
 
         system.run(until = 10.0)
     }
