@@ -34,6 +34,7 @@ import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.HeftMachin
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.RandomMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.RrMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.WorstFitMachineSelectionPolicy
+import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.LotteryMachineSelectionPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.CpopSortingPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.FifoSortingPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.FunctionalTaskEligibilityFilteringPolicy
@@ -93,6 +94,7 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
             "HEFT" -> HeftMachineSelectionPolicy()
             "ROUNDROBIN" -> RrMachineSelectionPolicy()
             "CPOP" -> CpopMachineSelectionPolicy()
+            "LOTTERY" -> LotteryMachineSelectionPolicy()
             else -> return null
         }
 
