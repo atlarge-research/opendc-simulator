@@ -29,6 +29,7 @@ import com.atlarge.opendc.model.odc.platform.scheduler.StageScheduler
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.*
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.*
 import javax.persistence.AttributeConverter
+import java.util.Random
 
 /**
  * An internal [AttributeConverter] that maps a name of a scheduler to the actual scheduler implementation.
@@ -82,6 +83,7 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
             "ROUNDROBIN" -> RrMachineSelectionPolicy()
             "CPOP" -> CpopMachineSelectionPolicy()
             "LOTTERY" -> LotteryMachineSelectionPolicy()
+            "LOTTERYDETERM" -> LotteryMachineSelectionPolicy(100, mutableMapOf(), Random(123))
             "FCP" -> FCPMachineSelectionPolicy()
             else -> return null
         }
