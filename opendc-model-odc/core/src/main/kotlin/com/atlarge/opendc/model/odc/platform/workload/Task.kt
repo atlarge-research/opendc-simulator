@@ -39,6 +39,11 @@ interface Task {
     val id: Int
 
     /**
+     * The ID of the owner of the task
+     */
+    val owner_id: Int
+   
+    /**
      * The priority of the task.
      */
     val priority: Int
@@ -94,7 +99,7 @@ interface Task {
      */
     val finished: Boolean
         get() = state is TaskState.Finished
-
+     
     /**
      * This method is invoked when a task has arrived at a datacenter.
      *
