@@ -34,6 +34,7 @@ import com.atlarge.opendc.simulator.context
 import java.util.NavigableMap
 import java.util.Random
 import java.util.TreeMap
+import javax.crypto.Mac
 import kotlin.math.abs
 
 /**
@@ -170,8 +171,8 @@ class RrMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionP
  *
  * https://en.wikipedia.org/wiki/Lottery_scheduling
  */
-class LotteryMachineSelectionPolicy(private var defaultTickets: Int = 100, 
-                                    private var distributionMap: Map<Machine, Int> = mutableMapOf(), 
+class LotteryMachineSelectionPolicy(private var defaultTickets: Int = 100,
+                                    private var distributionMap: Map<Machine, Int> = mutableMapOf(),
                                     private val random: Random = Random()) : MachineSelectionPolicy {
     /**
      * A map where the key number maps to the machine
@@ -209,7 +210,7 @@ class LotteryMachineSelectionPolicy(private var defaultTickets: Int = 100,
     fun findWinner(number: Int, startRange: Int = 0, endRange: Int = ticketMap.size): Machine? {
         // Get half of the passed range
         val halfRange: Int = startRange + ((endRange - startRange) / 2)
-        
+
         // Get the start value there
         val startValue = ticketMap.keys.elementAt(halfRange)
         if (startValue > number) {
@@ -221,7 +222,7 @@ class LotteryMachineSelectionPolicy(private var defaultTickets: Int = 100,
         } else {
             // Search to the right of this
             return findWinner(number, halfRange, endRange)
-        }   
+        }
     }
 
     override suspend fun select(machines: List<Machine>, task: Task): Machine? =
@@ -246,6 +247,35 @@ class LotteryMachineSelectionPolicy(private var defaultTickets: Int = 100,
                 } while (winner == null || !(winner in machines))
 
                 return winner
+            }
+        }
+}
+
+
+/** Fast Critical Path (FCP) Scheduling machine selection
+*
+* FCP considers two machines candidates, one which has sent the last message (last message received), and
+* the other which has became idle earliest. The procedure then selects the one with the earliest start time.
+*/
+class FCPMachineSelectionPolicy: MachineSelectionPolicy {
+    override suspend fun select(machines: List<Machine>, task: Task): Machine? =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                if (machines.isEmpty()) {
+                    return null
+                }
+
+                // Sort by the time they are done with tasks
+                // Times are managed by the scheduler, so no
+                // inconsistencies
+                val earliest = machines.sortedBy { it.state.endTime }[0]
+                val last = machines.sortedBy { it.state.startTime }[0]
+
+                if (earliest.state.endTime < last.state.startTime) {
+                    return earliest
+                }
+
+                return last
             }
         }
 }
