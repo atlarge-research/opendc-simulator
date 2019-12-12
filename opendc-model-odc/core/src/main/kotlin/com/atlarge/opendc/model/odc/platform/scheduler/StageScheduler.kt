@@ -31,6 +31,7 @@ import com.atlarge.opendc.model.odc.platform.scheduler.stages.machine.MachineSel
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.TaskEligibilityFilteringPolicy
 import com.atlarge.opendc.model.odc.platform.scheduler.stages.task.TaskSortingPolicy
 import com.atlarge.opendc.model.odc.platform.workload.Task
+import com.atlarge.opendc.model.odc.platform.workload.Job
 import com.atlarge.opendc.model.odc.topology.machine.Machine
 import com.atlarge.opendc.simulator.Context
 import com.atlarge.opendc.simulator.util.EventBus
@@ -76,7 +77,9 @@ class StageScheduler(
         internal val pending: MutableSet<Task> = LinkedHashSet(),
         internal val queued: MutableSet<Task> = LinkedHashSet(),
         internal val machineCores: MutableMap<Machine, Int> = HashMap(),
-        internal val taskMachines: MutableMap<Task, Machine> = HashMap()
+        internal val taskMachines: MutableMap<Task, Machine> = HashMap(),
+        internal val skipCount: MutableMap<Machine, Int> = HashMap(),
+        internal val runningTasks: MutableMap<Int, Int> = HashMap()
     )
 
 
@@ -152,6 +155,7 @@ class StageScheduler(
                     correspondingMachine.state.endTime = Date()
                     state.machineCores.merge(correspondingMachine, task.cores, Int::plus)
                     state.taskMachines.remove(task)
+                    state.runningTasks.merge(task.owner_id, 1, Int::plus)
                 }
                 iterator.remove()
             }
@@ -193,6 +197,7 @@ class StageScheduler(
                 state.taskMachines[it] = machine
                 machine.state.startTime = Date()
                 state.machineCores.merge(machine, it.cores, Int::minus)
+                state.runningTasks.merge(it.owner_id, 1, Int::minus)
             }
         }
 
