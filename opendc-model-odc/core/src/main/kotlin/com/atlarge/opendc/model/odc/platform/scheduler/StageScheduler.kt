@@ -78,7 +78,7 @@ class StageScheduler(
         internal val queued: MutableSet<Task> = LinkedHashSet(),
         internal val machineCores: MutableMap<Machine, Int> = HashMap(),
         internal val taskMachines: MutableMap<Task, Machine> = HashMap(),
-        internal val skipCount: MutableMap<Machine, Int> = HashMap(),
+        internal val skipCount: MutableMap<Int, Int> = HashMap(),
         internal val runningTasks: MutableMap<Int, Int> = HashMap()
     )
 
@@ -155,7 +155,8 @@ class StageScheduler(
                     correspondingMachine.state.endTime = Date()
                     state.machineCores.merge(correspondingMachine, task.cores, Int::plus)
                     state.taskMachines.remove(task)
-                    state.runningTasks.merge(task.owner_id, 1, Int::plus)
+                    state.runningTasks.merge(task.owner_id, 1, Int::minus)
+                    // println("removed one task from running tasks, new state: ${state.runningTasks.get(task.owner_id)}")
                 }
                 iterator.remove()
             }
@@ -191,13 +192,20 @@ class StageScheduler(
 
             // T4 Submit task to machine
             if (machine != null) {
+                // println("scheduling one, ${state.machines.size} machines avail")
                 machine.send(it)
                 state.queued.remove(it)
                 state.pending.add(it)
                 state.taskMachines[it] = machine
                 machine.state.startTime = Date()
                 state.machineCores.merge(machine, it.cores, Int::minus)
-                state.runningTasks.merge(it.owner_id, 1, Int::minus)
+                // println("adding task old value: ${state.runningTasks.get(it.owner_id)}")
+                // println(state.runningTasks.get(it.owner_id))
+                state.runningTasks.merge(it.owner_id, 1, Int::plus)
+                // if (state.runningTasks.get(it.owner_id)!! > 1) {
+                //     println("new value: ${state.runningTasks.get(it.owner_id)}")               
+                // }
+                // println(state.runningTasks.get(it.owner_id))
             }
         }
 

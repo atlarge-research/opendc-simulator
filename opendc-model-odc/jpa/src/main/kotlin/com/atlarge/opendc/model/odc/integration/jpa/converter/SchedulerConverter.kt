@@ -70,6 +70,7 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
             "PISA" -> PisaSortingPolicy()
             "CPOP" -> CpopSortingPolicy()
             "FCP" -> FCPSortingPolicy()
+            "DS" -> DSSortingPolicy()
             else -> return null
         }
 
@@ -83,6 +84,7 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
             "CPOP" -> CpopMachineSelectionPolicy()
             "LOTTERY" -> LotteryMachineSelectionPolicy()
             "FCP" -> FCPMachineSelectionPolicy()
+            "DS" -> DSMachineSelectionPolicy()
             else -> return null
         }
 

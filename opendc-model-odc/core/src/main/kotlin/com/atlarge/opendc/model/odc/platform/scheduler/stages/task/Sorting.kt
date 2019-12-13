@@ -27,6 +27,7 @@ package com.atlarge.opendc.model.odc.platform.scheduler.stages.task
 import com.atlarge.opendc.model.odc.OdcModel
 import com.atlarge.opendc.model.odc.platform.scheduler.StageScheduler
 import com.atlarge.opendc.model.odc.platform.workload.Task
+import com.atlarge.opendc.model.odc.platform.workload.TaskState
 import com.atlarge.opendc.model.odc.topology.machine.Cpu
 import com.atlarge.opendc.model.topology.destinations
 import com.atlarge.opendc.simulator.context
@@ -202,3 +203,68 @@ class FCPSortingPolicy : TaskSortingPolicy {
         return tasks
     }
 }
+
+
+/**
+ * Delay Scheduling (DS) algorithm 
+ *
+ * 
+ */
+
+class DSSortingPolicy : TaskSortingPolicy {
+    override suspend fun sort(tasks: List<Task>): List<Task> =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                val taskJobRunning = mutableMapOf<Task, Int>()
+                for (task in tasks) {
+                    // println(state.runningTasks.get(task.owner_id))
+                    if (state.runningTasks.get(task.owner_id) != null) {
+                        taskJobRunning.put(task, state.runningTasks.get(task.owner_id)!!)
+                    } else {
+                        taskJobRunning.put(task, 0)                        
+                    }                        
+                }
+                val sorted = taskJobRunning.toList().sortedBy { (_, value) -> value}.toMap()
+                
+                
+
+                // todo if the parent job has running tasks
+                for (task in sorted.keys) {
+                    if (taskJobRunning.get(task)!! > 0) {
+                        val setOfDependencies = task.dependencies
+                        for (dependency in setOfDependencies) {
+                            if (dependency.state is TaskState.Running) {
+                                taskJobRunning.merge(task, 1000, Int::plus)
+                                break
+                            }
+                        }
+                    } else if (state.skipCount.get(task.owner_id) != null) {
+                        if (state.skipCount.get(task.owner_id)!! > 10) {
+                            // set value on max.integer value and sort afterwards again 
+                            // this ensures top of the list
+                            taskJobRunning.merge(task, 1000, Int::plus)
+                            // set skipcount zero
+                            state.skipCount[task.owner_id] = 0
+                        } else {
+                            state.skipCount[task.owner_id] = 0
+                        }
+                    } else {
+                        state.skipCount.merge(task.owner_id, 1, Int::plus)
+                        println("skipcount not high enough, increasing by one: ${state.skipCount.get(task.owner_id)}")
+                    }
+                } 
+                
+                val results = sorted.toList().sortedBy { (_, value) -> value}.toMap()
+                
+                return results.keys.toList()
+
+            }
+        }
+}
+
+// println("owner id")
+// println(task.owner_id)
+// println("task id")
+// println(task.id)
+// println("taskjobRunning")
+// println(taskJobRunning)
