@@ -70,6 +70,9 @@ class StageScheduler(
      * @property tasks The tasks that are managed by the scheduler.
      * @property pending The tasks that are awaiting response of the machine.
      * @property queued The tasks that should be scheduled.
+     * @property skipCount the amount of times a task of a job has been skipped by the scheduling algorithm
+     * @property runningTasks the amount of running tasks per job id
+     * @property machinesPerJob which machines are used to execute the tasks of the job
      */
     data class State(
         internal val machines: MutableSet<Machine> = LinkedHashSet(),
@@ -79,7 +82,8 @@ class StageScheduler(
         internal val machineCores: MutableMap<Machine, Int> = HashMap(),
         internal val taskMachines: MutableMap<Task, Machine> = HashMap(),
         internal val skipCount: MutableMap<Int, Int> = HashMap(),
-        internal val runningTasks: MutableMap<Int, Int> = HashMap()
+        internal val runningTasks: MutableMap<Int, Int> = HashMap(),
+        internal val machinesPerJob: MutableMap<Int, MutableSet<Machine>> = HashMap()
     )
 
 
@@ -202,6 +206,20 @@ class StageScheduler(
                 // println("adding task old value: ${state.runningTasks.get(it.owner_id)}")
                 // println(state.runningTasks.get(it.owner_id))
                 state.runningTasks.merge(it.owner_id, 1, Int::plus)
+                
+                if (state.machinesPerJob.get(it.owner_id) == null) {
+                    val setMachines = mutableSetOf<Machine>()
+                    // setMachines.add(machine)
+                    setMachines.add(machine)
+                    state.machinesPerJob.put(it.owner_id, setMachines)
+                } else {
+                    val setMachines = state.machinesPerJob.get(it.owner_id)!!
+                    // setMachines.add(machine)
+                    setMachines.add(machine)
+                    state.machinesPerJob.put(it.owner_id, setMachines)
+
+                }
+                
                 // if (state.runningTasks.get(it.owner_id)!! > 1) {
                 //     println("new value: ${state.runningTasks.get(it.owner_id)}")               
                 // }

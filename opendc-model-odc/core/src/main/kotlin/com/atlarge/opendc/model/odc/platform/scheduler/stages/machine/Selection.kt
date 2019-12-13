@@ -176,13 +176,22 @@ class DSMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionP
         context<StageScheduler.State, OdcModel>().run {
             model.run {
                 if (machines.isEmpty()) {
-                    println("machines are empty")
+                    // println("machines are empty")
                     return null
                 } else {
                     // println("scheduling on a machine (inside machine selection) with ${state.machines.size} avail")
-                    machines.firstOrNull()
+                    if (state.machinesPerJob.get(task.owner_id) == null) {
+                        return machines.firstOrNull()
+                    } else {
+                        val setMachines = state.machinesPerJob.get(task.owner_id)!!
+                        for (prevMachine in setMachines) {
+                            if (prevMachine in machines) {
+                                return prevMachine
+                            } 
+                        }
+                    }
+                    return machines.firstOrNull()
                 }
-                // TODO algorithm here for selecting machines
             }
         }
 }
