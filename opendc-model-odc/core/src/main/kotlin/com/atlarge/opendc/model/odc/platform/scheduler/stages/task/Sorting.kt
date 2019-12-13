@@ -250,7 +250,7 @@ class DSSortingPolicy : TaskSortingPolicy {
                         }
                     } else {
                         state.skipCount.merge(task.owner_id, 1, Int::plus)
-                        println("skipcount not high enough, increasing by one: ${state.skipCount.get(task.owner_id)}")
+                        // println("skipcount not high enough, increasing by one: ${state.skipCount.get(task.owner_id)}")
                     }
                 } 
                 

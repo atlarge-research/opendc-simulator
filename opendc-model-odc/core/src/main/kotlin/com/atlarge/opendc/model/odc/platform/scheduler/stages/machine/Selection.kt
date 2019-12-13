@@ -176,7 +176,7 @@ class DSMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionP
         context<StageScheduler.State, OdcModel>().run {
             model.run {
                 if (machines.isEmpty()) {
-                    println("machines are empty")
+                    // println("machines are empty")
                     return null
                 } else {
                     // println("scheduling on a machine (inside machine selection) with ${state.machines.size} avail")
