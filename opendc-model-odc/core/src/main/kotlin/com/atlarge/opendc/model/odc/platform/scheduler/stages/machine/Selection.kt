@@ -167,6 +167,28 @@ class RrMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionP
 }
 
 /**
+ * Delay Scheduling (DS) algorithm.
+ *
+ * 
+ */
+class DSMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionPolicy {
+    override suspend fun select(machines: List<Machine>, task: Task): Machine? =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                if (machines.isEmpty()) {
+                    println("machines are empty")
+                    return null
+                } else {
+                    // println("scheduling on a machine (inside machine selection) with ${state.machines.size} avail")
+                    machines.firstOrNull()
+                }
+                // TODO algorithm here for selecting machines
+            }
+        }
+}
+
+
+/**
  * Lottery Scheduling
  *
  * https://en.wikipedia.org/wiki/Lottery_scheduling
