@@ -101,7 +101,6 @@ gradle-app.setting
 
 
 data/
-data2/
-
 #Mac
 *.DS_Store
+data2/
