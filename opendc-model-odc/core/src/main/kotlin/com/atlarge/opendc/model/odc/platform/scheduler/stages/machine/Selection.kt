@@ -168,7 +168,7 @@ class RrMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionP
 
 /**
  * Delay Scheduling (DS) algorithm.
- *
+ * https://cs.stanford.edu/~matei/papers/2010/eurosys_delay_scheduling.pdf
  * 
  */
 class DSMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionPolicy {
@@ -176,13 +176,12 @@ class DSMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionP
         context<StageScheduler.State, OdcModel>().run {
             model.run {
                 if (machines.isEmpty()) {
-                    // println("machines are empty")
                     return null
                 } else {
-                    // println("scheduling on a machine (inside machine selection) with ${state.machines.size} avail")
                     if (state.machinesPerJob.get(task.owner_id) == null) {
                         return machines.firstOrNull()
                     } else {
+                        // Try to schedule a task on a machine where its dependencies are also executed
                         val setMachines = state.machinesPerJob.get(task.owner_id)!!
                         for (prevMachine in setMachines) {
                             if (prevMachine in machines) {

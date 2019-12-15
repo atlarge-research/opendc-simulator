@@ -160,7 +160,6 @@ class StageScheduler(
                     state.machineCores.merge(correspondingMachine, task.cores, Int::plus)
                     state.taskMachines.remove(task)
                     state.runningTasks.merge(task.owner_id, 1, Int::minus)
-                    // println("removed one task from running tasks, new state: ${state.runningTasks.get(task.owner_id)}")
                 }
                 iterator.remove()
             }
@@ -196,34 +195,22 @@ class StageScheduler(
 
             // T4 Submit task to machine
             if (machine != null) {
-                // println("scheduling one, ${state.machines.size} machines avail")
                 machine.send(it)
                 state.queued.remove(it)
                 state.pending.add(it)
                 state.taskMachines[it] = machine
                 machine.state.startTime = Date()
                 state.machineCores.merge(machine, it.cores, Int::minus)
-                // println("adding task old value: ${state.runningTasks.get(it.owner_id)}")
-                // println(state.runningTasks.get(it.owner_id))
-                state.runningTasks.merge(it.owner_id, 1, Int::plus)
-                
+                state.runningTasks.merge(it.owner_id, 1, Int::plus)                
                 if (state.machinesPerJob.get(it.owner_id) == null) {
                     val setMachines = mutableSetOf<Machine>()
-                    // setMachines.add(machine)
                     setMachines.add(machine)
                     state.machinesPerJob.put(it.owner_id, setMachines)
                 } else {
                     val setMachines = state.machinesPerJob.get(it.owner_id)!!
-                    // setMachines.add(machine)
                     setMachines.add(machine)
                     state.machinesPerJob.put(it.owner_id, setMachines)
-
                 }
-                
-                // if (state.runningTasks.get(it.owner_id)!! > 1) {
-                //     println("new value: ${state.runningTasks.get(it.owner_id)}")               
-                // }
-                // println(state.runningTasks.get(it.owner_id))
             }
         }
 
