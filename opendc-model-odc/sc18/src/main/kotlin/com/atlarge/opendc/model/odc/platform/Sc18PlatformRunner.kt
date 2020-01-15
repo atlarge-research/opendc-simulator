@@ -26,7 +26,6 @@ package com.atlarge.opendc.model.odc.platform
 
 import com.atlarge.opendc.model.odc.integration.csv.Sc18CsvWriter
 import com.atlarge.opendc.model.odc.platform.workload.format.sgwf.SgwfParser
-import com.atlarge.opendc.model.odc.platform.workload.format.wta.WTAParser
 import com.atlarge.opendc.model.odc.topology.format.sc18.Sc18SetupParser
 import com.atlarge.opendc.omega.OmegaKernel
 import com.github.ajalt.clikt.core.CliktCommand
@@ -117,7 +116,7 @@ class SC18PlatformRunner : CliktCommand() {
         logger.info { "See data/opendc.log for more detailed logging information."}
         logger.info { "Parsing input files [trace=$trace, setup=$setup]" }
 
-        val trace = WTAParser().parse(trace.absolutePath)
+        val trace = SgwfParser().parse(trace.inputStream())
         val path = Sc18SetupParser().parse(setup.inputStream())
 
         val factory = Persistence.createEntityManagerFactory("opendc-simulator")

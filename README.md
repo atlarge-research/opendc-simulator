@@ -17,9 +17,6 @@ Collaborative Datacenter Simulation and Exploration for Everybody
 	</a>
 </p>
 
-## Reading the lab report
-The lab report can be found in the `lab_report` folder. The source code for the lab report can be found in the `lab_report/src` folder.
-
 ## Getting the source
 Download the source code by running the following code in your command prompt:
 ```sh

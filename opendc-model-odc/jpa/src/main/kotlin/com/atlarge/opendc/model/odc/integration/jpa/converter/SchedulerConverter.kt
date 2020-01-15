@@ -84,7 +84,6 @@ class SchedulerConverter : AttributeConverter<Scheduler<*>, String> {
             "ROUNDROBIN" -> RrMachineSelectionPolicy()
             "CPOP" -> CpopMachineSelectionPolicy()
             "LOTTERY" -> LotteryMachineSelectionPolicy()
-            "LOTTERYDETERM" -> LotteryMachineSelectionPolicy(100, mutableMapOf(), Random(123))
             "FCP" -> FCPMachineSelectionPolicy()
             "DS" -> DSMachineSelectionPolicy()
             else -> return null
