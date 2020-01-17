@@ -66,8 +66,6 @@ class Sc18CsvWriter(basePath: Path, coroutineContext: CoroutineContext, bufferSi
             "scheduler",
             "stage",
             "tick",
-            "cpu",
-            "wall",
             "size",
             "iterations"
         ), false)
@@ -82,8 +80,6 @@ class Sc18CsvWriter(basePath: Path, coroutineContext: CoroutineContext, bufferSi
                 element.experiment.scheduler.name,
                 element.stage.toString(),
                 element.time.toString(),
-                element.cpu.toString(),
-                element.wall.toString(),
                 element.size.toString(),
                 element.iterations.toString()
             ), false)

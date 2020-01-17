@@ -34,6 +34,7 @@ import com.atlarge.opendc.simulator.context
 import java.util.NavigableMap
 import java.util.Random
 import java.util.TreeMap
+import javax.crypto.Mac
 import kotlin.math.abs
 
 /**
@@ -161,6 +162,150 @@ class RrMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionP
                 val ids: NavigableMap<Int, Machine> = TreeMap(machines.associateBy { it.id })
                 current = ids.higherKey(current) ?: ids.firstKey()
                 return ids[current]
+            }
+        }
+}
+
+/**
+ * Delay Scheduling (DS) algorithm.
+ * https://cs.stanford.edu/~matei/papers/2010/eurosys_delay_scheduling.pdf
+ * 
+ */
+class DSMachineSelectionPolicy(private var current: Int = 0) : MachineSelectionPolicy {
+    override suspend fun select(machines: List<Machine>, task: Task): Machine? =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                if (machines.isEmpty()) {
+                    return null
+                } else {
+                    if (state.machinesPerJob.get(task.owner_id) == null) {
+                        return machines.firstOrNull()
+                    } else {
+                        // Try to schedule a task on a machine where its dependencies are also executed
+                        val setMachines = state.machinesPerJob.get(task.owner_id)!!
+                        for (prevMachine in setMachines) {
+                            if (prevMachine in machines) {
+                                return prevMachine
+                            } 
+                        }
+                    }
+                    return machines.firstOrNull()
+                }
+            }
+        }
+}
+
+
+/**
+ * Lottery Scheduling
+ *
+ * https://en.wikipedia.org/wiki/Lottery_scheduling
+ */
+class LotteryMachineSelectionPolicy(private var defaultTickets: Int = 100,
+                                    private var distributionMap: Map<Machine, Int> = mutableMapOf(),
+                                    private val random: Random = Random()) : MachineSelectionPolicy {
+    /**
+     * A map where the key number maps to the machine
+     * that owns the range of tickets that
+     * start at that number and end at the next
+     * index
+     */
+    val ticketMap: MutableMap<Int, Machine> = mutableMapOf()
+    val knownMachines: MutableSet<Machine> = mutableSetOf()
+    var totalTickets = 0
+
+    fun pushMachine(machine: Machine, tickets: Int = defaultTickets) {
+        ticketMap.set(totalTickets, machine)
+        totalTickets += tickets
+        knownMachines.add(machine)
+    }
+
+    init {
+        // Fill the map based on the already known values
+        for ((machine, tickets) in distributionMap) {
+            pushMachine(machine, tickets)
+        }
+    }
+
+    fun ensureMachineChances(machines: List<Machine>) {
+        for (machine in machines) {
+            if (!knownMachines.contains(machine)) {
+                // Not known yet, add it to this list
+                // and assign it a ticket range
+                pushMachine(machine)
+            }
+        }
+    }
+
+    fun findWinner(number: Int, startRange: Int = 0, endRange: Int = ticketMap.size): Machine? {
+        // Get half of the passed range
+        val halfRange: Int = startRange + ((endRange - startRange) / 2)
+
+        // Get the start value there
+        val startValue = ticketMap.keys.elementAt(halfRange)
+        if (startValue > number) {
+            // Search to the left of this
+            return findWinner(number, startRange, halfRange)
+        } else if (startValue == number || halfRange == ticketMap.size - 1 || number < ticketMap.keys.elementAt(halfRange + 1)) {
+            // We found it
+            return ticketMap.get(startValue)
+        } else {
+            // Search to the right of this
+            return findWinner(number, halfRange, endRange)
+        }
+    }
+
+    override suspend fun select(machines: List<Machine>, task: Task): Machine? =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                if (machines.isEmpty()) {
+                    return null
+                }
+
+                // Make sure all machines are actually in the ticket map
+                ensureMachineChances(machines)
+
+                var winner: Machine?;
+                do {
+                    // Draw a ticket
+                    val ticket: Int = random.nextInt(totalTickets)
+
+                    // Find the winner
+                    winner = findWinner(ticket)
+
+                    // Check if the winner is present
+                } while (winner == null || !(winner in machines))
+
+                return winner
+            }
+        }
+}
+
+
+/** Fast Critical Path (FCP) Scheduling machine selection
+*
+* FCP considers two machines candidates, one which has sent the last message (last message received), and
+* the other which has became idle earliest. The procedure then selects the one with the earliest start time.
+*/
+class FCPMachineSelectionPolicy: MachineSelectionPolicy {
+    override suspend fun select(machines: List<Machine>, task: Task): Machine? =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                if (machines.isEmpty()) {
+                    return null
+                }
+
+                // Sort by the time they are done with tasks
+                // Times are managed by the scheduler, so no
+                // inconsistencies
+                val earliest = machines.sortedBy { it.state.endTime }[0]
+                val last = machines.sortedBy { it.state.startTime }[0]
+
+                if (earliest.state.endTime < last.state.startTime) {
+                    return earliest
+                }
+
+                return last
             }
         }
 }

@@ -27,6 +27,7 @@ package com.atlarge.opendc.model.odc.platform.scheduler.stages.task
 import com.atlarge.opendc.model.odc.OdcModel
 import com.atlarge.opendc.model.odc.platform.scheduler.StageScheduler
 import com.atlarge.opendc.model.odc.platform.workload.Task
+import com.atlarge.opendc.model.odc.platform.workload.TaskState
 import com.atlarge.opendc.model.odc.topology.machine.Cpu
 import com.atlarge.opendc.model.topology.destinations
 import com.atlarge.opendc.simulator.context
@@ -181,4 +182,76 @@ class PisaSortingPolicy(val MaxWaitCount: Int = 100, private val waitCounts: Mut
         }
         .sortedByDescending { (_, priority) -> priority }
         .map { (task, _) -> task }
+}
+
+
+/**
+ * Fast Critical Path (FCP) Algorithm scheduling
+ *
+ * The paper keeps track of 2 lists which are sorted and unsorted. For the sorted list, the paper uses
+ * a priority queue, however a small sorted list will be sufficient for this simulation.
+ */
+class FCPSortingPolicy : TaskSortingPolicy {
+    override suspend fun sort(tasks: List<Task>): List<Task> {
+        // subList returns a view of the list limited by indices
+        // Operations done on this sublist is reflected on parent list
+        // So, instead of keeping two separate lists, we just keep
+        // a sub section of tasks sorted
+        val len = if (tasks.size > 500) 500 else tasks.size
+
+        tasks.subList(0, len).sortedBy {it.priority}
+        return tasks
+    }
+}
+
+
+/**
+ * Delay Scheduling (DS) algorithm 
+ * https://cs.stanford.edu/~matei/papers/2010/eurosys_delay_scheduling.pdf
+ *
+ */
+
+class DSSortingPolicy : TaskSortingPolicy {
+    // this value is derived from the paper and is should be dependent of the number of nodes (M) in the system 
+    // D = 0.25M. We assume a setup with 4 racks of 16 machines.
+    val d = 16
+    override suspend fun sort(tasks: List<Task>): List<Task> =
+        context<StageScheduler.State, OdcModel>().run {
+            model.run {
+                val taskJobRunning = mutableMapOf<Task, Int>()
+                for (task in tasks) {
+                    if (state.runningTasks.get(task.owner_id) != null) {
+                        taskJobRunning.put(task, state.runningTasks.get(task.owner_id)!!)
+                    } else {
+                        taskJobRunning.put(task, 0)                        
+                    }                        
+                }
+                val sorted = taskJobRunning.toList().sortedBy { (_, value) -> value}.toMap()
+                
+                // if the task has dependencies that are already finished, put them in front of the queue
+                for (task in sorted.keys) {
+                    if (taskJobRunning.get(task)!! > 0) {
+                        val setOfDependencies = task.dependencies
+                        for (dependency in setOfDependencies) {
+                            if (dependency.state is TaskState.Finished) {
+                                taskJobRunning.merge(task, 1000, Int::plus)
+                                break
+                            }
+                        }
+                    } else if (state.skipCount.get(task.owner_id) != null) {
+                        if (state.skipCount.get(task.owner_id)!! > d) {
+                            taskJobRunning.merge(task, 10000, Int::plus)
+                            state.skipCount[task.owner_id] = 0
+                        } else {
+                            state.skipCount[task.owner_id] = 0
+                        }
+                    } else {
+                        state.skipCount.merge(task.owner_id, 1, Int::plus)
+                    }
+                } 
+                
+                val results = sorted.toList().sortedBy { (_, value) -> value}.toMap()
+                return results.keys.toList()
+           }
+        }
 }
