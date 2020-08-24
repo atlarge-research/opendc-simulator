@@ -1,3 +1,7 @@
+<p align="center">
+  <em>We are moving towards a mono-repo code model in v2.0 of OpenDC.<br/>See the <a href="https://github.com/atlarge-research/opendc">main repo</a> for the latest version, which now has the code previously contained in this sub-repo embedded in it.</em>
+</p>
+
 <h1 align="center">
   <a href="http://opendc.org/">
     <img src="misc/artwork/logo.png" width="100" alt="OpenDC">
